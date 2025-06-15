@@ -4,4 +4,4 @@ local app = Ludi.new()
 
 app:get("/hello", "hello")
 
-app:listen()
+app:listen(4000)
