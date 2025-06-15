@@ -3,6 +3,7 @@ mod server;
 use std::ffi::{CStr, c_char};
 
 use axum::http::Method;
+use libc::c_int;
 use once_cell::sync::Lazy;
 use tokio::runtime::Runtime;
 
@@ -42,9 +43,33 @@ pub unsafe extern "C" fn add_route(
     });
 }
 
+/// Starts the Axum server on the given port.
+///
+/// # Safety
+///
+/// This function is marked as `unsafe` because it is intended to be called
+/// from foreign code (FFI), such as C or Lua. The caller must ensure:
+///
+/// - The `port` value must be a valid TCP port number: between 0 and 65535 (inclusive).
+///   Any value outside this range will be rejected internally, but it is still the
+///   caller's responsibility to pass valid input.
+/// - This function should be called only once unless the runtime supports multiple
+///   invocations. Calling it multiple times or concurrently without proper handling
+///   may lead to panics or undefined behavior.
+/// - The calling environment must be properly initialized and must ensure this call
+///   does not conflict with other async runtimes or I/O systems.
+///
+/// Failure to meet these requirements may result in crashes, panics, or undefined behavior.
 #[unsafe(no_mangle)]
-pub extern "C" fn lua_start_server() {
-    TOKIO_RUNTIME.block_on(async {
-        server::start_server().await;
+pub unsafe extern "C" fn start_server(port: c_int) {
+    if port < 0 || port > u16::MAX as c_int {
+        eprintln!("Invalid port number: {}", port);
+        return;
+    }
+
+    let port = port as u16;
+
+    TOKIO_RUNTIME.block_on(async move {
+        server::start_server(port).await;
     });
 }

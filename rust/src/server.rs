@@ -9,18 +9,19 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-static ROUTES: Lazy<Arc<RwLock<HashMap<(Method, String), String>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+type RoutesMap = Lazy<Arc<RwLock<HashMap<(Method, String), String>>>>;
+
+static ROUTES: RoutesMap = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 pub fn add_route(method: Method, path: &str, response: &str) {
     let mut routes = ROUTES.write().unwrap();
     routes.insert((method, path.to_string()), response.to_string());
 }
 
-pub async fn start_server() {
+pub async fn start_server(port: u16) {
     let app = Router::new().fallback(fallback_handler);
 
-    let addr = format!("0.0.0.0:{}", 3000);
+    let addr = format!("0.0.0.0:{}", port);
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
 
