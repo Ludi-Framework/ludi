@@ -2,7 +2,7 @@ local ffi = require("ffi")
 
 ffi.cdef([[
   void add_route(const char* method, const char* path, const char* response);
-  void start_server(const int* port);
+  void start_server(const int port);
 ]])
 
 local lib = ffi.load("../rust/target/release/librust.dylib")
@@ -27,9 +27,7 @@ function Ludi:listen(port)
 		lib.add_route(route.method, route.path, route.response)
 	end
 
-	local c_port = ffi.new("int[1]", port or 3000)
-
-	lib.start_server(c_port)
+	lib.start_server(port or 3000)
 end
 
 return Ludi
