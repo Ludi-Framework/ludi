@@ -27,7 +27,7 @@ function Ludi:listen()
 		lib.add_route(route.method, route.path, route.response)
 	end
 
-	lib.lua_start_server()
+	lib.start_server()
 end
 
 return Ludi
