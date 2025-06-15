@@ -2,7 +2,7 @@ local ffi = require("ffi")
 
 ffi.cdef([[
   void add_route(const char* method, const char* path, const char* response);
-  void lua_start_server(void);
+  void start_server(void);
 ]])
 
 local lib = ffi.load("../rust/target/release/librust.dylib")
