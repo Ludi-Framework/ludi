@@ -5,7 +5,17 @@ ffi.cdef([[
   void start_server(const int port);
 ]])
 
-local lib = ffi.load("../rust/target/release/librust.dylib")
+local os_name = jit.os:lower()
+
+local lib_map = {
+    windows = "../rust/target/release/rust.dll",
+    linux   = "../rust/target/release/librust.so",
+    osx     = "../rust/target/release/librust.dylib",
+}
+
+local lib_path = lib_map[os_name]
+
+local lib = ffi.load(lib_path)
 
 local Ludi = {}
 Ludi.__index = Ludi
