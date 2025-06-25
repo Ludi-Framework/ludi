@@ -13,7 +13,7 @@ use std::{
     sync::RwLock,
 };
 
-pub type HandlerFn = extern "C" fn(*const c_char, *const c_char) -> *const c_char;
+pub type HandlerFn = extern "C" fn(*const c_char, *const c_char, *const c_char) -> *const c_char;
 
 static ROUTES: Lazy<RwLock<HashMap<(Method, String), HandlerFn>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
@@ -100,6 +100,7 @@ async fn handler_dispatch(
 ) -> Response<Body> {
     let path = uri.path().to_string();
 
+    let query_str = uri.query().unwrap_or("").to_string();
     let body_bytes: Bytes = to_bytes(body, 65536).await.unwrap_or_default();
     let body_str = String::from_utf8_lossy(&body_bytes).to_string();
 
@@ -109,8 +110,9 @@ async fn handler_dispatch(
 
     if let Some(handler) = routes.get(&(method.clone(), path.clone())) {
         let c_body = CString::new(body_str).unwrap_or_default();
+        let c_query = CString::new(query_str).unwrap_or_default();
         let c_headers = CString::new(headers_str).unwrap_or_default();
-        let res_ptr = handler(c_body.as_ptr(), c_headers.as_ptr());
+        let res_ptr = handler(c_body.as_ptr(), c_headers.as_ptr(), c_query.as_ptr());
 
         let res_str = unsafe {
             if res_ptr.is_null() {
@@ -158,26 +160,38 @@ mod tests {
     use axum::http::{HeaderMap, Method, Uri};
     use std::ffi::CString;
 
-    extern "C" fn test_handler(body: *const c_char, headers: *const c_char) -> *const c_char {
-        unsafe {
-            let b = if body.is_null() {
-                ""
-            } else {
-                std::ffi::CStr::from_ptr(body).to_str().unwrap_or("")
-            };
-            let h = if headers.is_null() {
-                ""
-            } else {
-                std::ffi::CStr::from_ptr(headers).to_str().unwrap_or("")
-            };
-            let response = CString::new(format!(
-                r#"{{"echo_body": "{}","echo_headers": "{}"}}"#,
-                b, h
-            ))
-            .unwrap();
-            response.into_raw()
-        }
+    extern "C" fn test_handler(
+      body: *const c_char,
+      headers: *const c_char,
+      query: *const c_char,
+    )  -> *const c_char {
+    unsafe {
+        let b = if body.is_null() {
+            ""
+        } else {
+            CStr::from_ptr(body).to_str().unwrap_or("")
+        };
+        let h = if headers.is_null() {
+            ""
+        } else {
+            CStr::from_ptr(headers).to_str().unwrap_or("")
+        };
+        let q = if query.is_null() {
+            ""
+        } else {
+            CStr::from_ptr(query).to_str().unwrap_or("")
+        };
+
+        let response = CString::new(format!(
+            r#"{{"echo_body": "{}","echo_headers": "{}","echo_query": "{}"}}"#,
+            b, h, q
+        ))
+        .unwrap();
+
+        response.into_raw()
     }
+}
+
 
     #[test]
     fn test_add_route_handler() {
