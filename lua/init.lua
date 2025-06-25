@@ -3,6 +3,7 @@ local Ludi = require("bindings")
 local server = Ludi.new()
 
 server:get("/hello", function(req, res)
+    print(req.query["teste"])
     res:status(202):json({message = "Hello from lua"})
 end)
 

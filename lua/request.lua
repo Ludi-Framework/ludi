@@ -1,15 +1,7 @@
 local json = require("utils.json")
-
+local parse_query_string = require("utils.parser")
 local Request = {}
 Request.__index = Request
-
-local function parse_query_string(query)
-    local result = {}
-    for key, value in string.gmatch(query, "([^&=?]+)=([^&=?]+)") do
-        result[key] = value
-    end
-    return result
-end
 
 function Request.new(raw_body, raw_headers, raw_url)
     local self = setmetatable({}, Request)
