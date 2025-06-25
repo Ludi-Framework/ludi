@@ -1,12 +1,12 @@
 mod server;
 
-use std::ffi::{CStr, c_char};
+use std::ffi::c_char;
 
-use axum::http::Method;
 use libc::c_int;
 use once_cell::sync::Lazy;
 use tokio::runtime::Runtime;
 
+pub type HandlerFn = extern "C" fn(*const c_char, *const c_char) -> *const c_char;
 static TOKIO_RUNTIME: Lazy<Runtime> =
     Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
 
@@ -14,32 +14,25 @@ static TOKIO_RUNTIME: Lazy<Runtime> =
 ///
 /// # Safety
 ///
-/// This function is `unsafe` because it dereferences raw C pointers (`*const c_char`) received via FFI.
+/// This function is unsafe because it dereferences raw C pointers (*const c_char) received via FFI.
 ///
 /// The caller must ensure:
-/// - The `method`, `path`, and `response` pointers are valid and non-null.
+/// - The method, path, and response pointers are valid and non-null.
 /// - Each pointer refers to a null-terminated C string.
 /// - The memory they point to is readable and remains valid for the duration of the call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn add_route(
+pub unsafe extern "C" fn add_route_handler(
     method: *const c_char,
     path: *const c_char,
-    response: *const c_char,
+    handler: HandlerFn,
 ) {
-    let method = unsafe { CStr::from_ptr(method).to_str().unwrap_or("GET") };
-    let path = unsafe { CStr::from_ptr(path).to_str().unwrap_or_default() };
-    let resp = unsafe { CStr::from_ptr(response).to_str().unwrap_or_default() };
-
-    let method = match method.to_uppercase().as_str() {
-        "GET" => Method::GET,
-        "POST" => Method::POST,
-        "PUT" => Method::PUT,
-        "DELETE" => Method::DELETE,
-        _ => Method::GET,
-    };
+    if method.is_null() || path.is_null() {
+        eprintln!("method or path is null");
+        return;
+    }
 
     TOKIO_RUNTIME.block_on(async {
-        server::add_route(method, path, resp);
+        server::add_route_handler(method, path, handler);
     });
 }
 
@@ -47,10 +40,10 @@ pub unsafe extern "C" fn add_route(
 ///
 /// # Safety
 ///
-/// This function is marked as `unsafe` because it is intended to be called
+/// This function is marked as unsafe because it is intended to be called
 /// from foreign code (FFI), such as C or Lua. The caller must ensure:
 ///
-/// - The `port` value must be a valid TCP port number: between 0 and 65535 (inclusive).
+/// - The port value must be a valid TCP port number: between 0 and 65535 (inclusive).
 ///   Any value outside this range will be rejected internally, but it is still the
 ///   caller's responsibility to pass valid input.
 /// - This function should be called only once unless the runtime supports multiple
@@ -66,7 +59,6 @@ pub unsafe extern "C" fn start_server(port: c_int) {
         eprintln!("Invalid port number: {}", port);
         return;
     }
-
     let port = port as u16;
 
     TOKIO_RUNTIME.block_on(async move {
