@@ -1,12 +1,13 @@
 local Ludi = require("bindings")
 
-local app = Ludi.new()
+local server = Ludi.new()
 
-app:get("/hello", "Hello World")
-app:get("/secure", {auth = true, cache = false}, "Secure Content")
-app:post("/submit", function() return "Form submitted" end)
-app:put("/item/1", {auth = true}, "Item updated")
-app:delete("/item/1", "Item deleted")
--- app:patch("/item/1", {partial = true}, "Item partially updated")
+server:get("/hello",
+           function(req, res) res:status(202):json({message = "Hello"}) end)
 
-app:listen(4000)
+server:post("/echo", function(req, res)
+    res:status(200)
+    res:send(req.body or "Sem corpo")
+end)
+
+server:listen(3000)
