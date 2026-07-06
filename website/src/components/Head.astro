@@ -10,9 +10,14 @@
  * - Deep links are never hijacked: the redirect only runs on `/`.
  */
 import Default from '@astrojs/starlight/components/Head.astro';
+import logo from '../assets/ludi_logo.png';
 ---
 
 <Default><slot /></Default>
+
+{/* Warm the header logo early so navigation never flashes it in late. */}
+<link rel="preload" as="image" href={logo.src} />
+
 
 <script>
 	const KEY = 'ludi-locale';

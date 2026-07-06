@@ -11,8 +11,10 @@ export default defineConfig({
 			title: 'Ludi',
 			description: 'An Express-style web framework for Lua, powered by Rust.',
 			logo: {
+				// Decorative: the "Ludi" site title sits right next to it, so an
+				// empty alt avoids the alt-text flash while the image loads.
 				src: './src/assets/ludi_logo.png',
-				alt: 'Ludi logo',
+				alt: '',
 			},
 			favicon: '/favicon.png',
 			social: [
