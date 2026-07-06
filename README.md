@@ -205,4 +205,4 @@ OS/Lua combination and attached to the GitHub release.
 
 ## License
 
-MIT
+[MIT](LICENSE)
