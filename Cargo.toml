@@ -18,10 +18,11 @@ lua51 = ["mlua/lua51"]
 lua52 = ["mlua/lua52"]
 lua53 = ["mlua/lua53"]
 lua54 = ["mlua/lua54"]
+lua55 = ["mlua/lua55"]
 luajit = ["mlua/luajit"]
 
 [dependencies]
-mlua = { version = "0.10", features = ["module"] }
+mlua = { version = "0.11", features = ["module"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
 hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
