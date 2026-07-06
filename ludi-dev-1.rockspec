@@ -1,3 +1,4 @@
+rockspec_format = "3.0"
 package = "ludi"
 version = "dev-1"
 

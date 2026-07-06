@@ -7,12 +7,19 @@ edition = "2024"
 name = "ludi_core"
 crate-type = ["cdylib"]
 
-# The Lua version feature (mlua/lua54, mlua/luajit, ...) is NOT set here on
-# purpose: luarocks-build-rust-mlua enables the right one for the Lua that
-# LuaRocks runs under. For a local build, pass it yourself:
+# No Lua version is enabled by default: luarocks-build-rust-mlua passes the
+# right feature for the Lua that LuaRocks runs under. For a local build,
+# pass it yourself:
 #
-#   cargo build --release --features mlua/lua54
+#   cargo build --release --features lua54
 #
+[features]
+lua51 = ["mlua/lua51"]
+lua52 = ["mlua/lua52"]
+lua53 = ["mlua/lua53"]
+lua54 = ["mlua/lua54"]
+luajit = ["mlua/luajit"]
+
 [dependencies]
 mlua = { version = "0.10", features = ["module"] }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
