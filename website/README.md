@@ -46,6 +46,7 @@ website/
 │   ├── assets/              # Images processed by Astro (logo)
 │   ├── components/          # Astro components
 │   │   ├── BuyMeACoffee.astro   # Header donation button (localized label)
+│   │   ├── Footer.astro         # Starlight Footer override: logo + links
 │   │   ├── Head.astro           # Starlight Head override + locale detection
 │   │   └── SocialIcons.astro    # Starlight override: BMC button + GitHub
 │   ├── content/
