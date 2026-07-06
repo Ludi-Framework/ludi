@@ -1,0 +1,64 @@
+/*
+ * Tailwind v4 + Starlight integration (@astrojs/starlight-tailwind).
+ * Ludi palette: purple accent taken from the logo. Starlight ships
+ * light/dark mode out of the box; the accent/gray ramps below feed
+ * both themes through the starlight-tailwind mapping.
+ */
+@layer base, starlight, theme, components, utilities;
+
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+	/* Accent: Ludi purple. starlight-tailwind maps 200/600/900/950. */
+	--color-accent-50: #f3f1fc;
+	--color-accent-100: #e9e5fa;
+	--color-accent-200: #c9c0f2;
+	--color-accent-300: #ab9ee9;
+	--color-accent-400: #8d7bdf;
+	--color-accent-500: #7a63d8;
+	--color-accent-600: #6f5bd6;
+	--color-accent-700: #5b47c2;
+	--color-accent-800: #4a3aa0;
+	--color-accent-900: #302566;
+	--color-accent-950: #221a4a;
+
+	/* Grays with a slight purple tint. starlight-tailwind maps 100–900. */
+	--color-gray-100: #f5f3fa;
+	--color-gray-200: #ebe8f2;
+	--color-gray-300: #c0bcce;
+	--color-gray-400: #8d87a3;
+	--color-gray-500: #59546e;
+	--color-gray-600: #393550;
+	--color-gray-700: #2d2945;
+	--color-gray-800: #27233e;
+	--color-gray-900: #17141f;
+
+	/* "Buy me a coffee" button; adapts to the active theme. */
+	--color-coffee: light-dark(#b07d10, #f0b429);
+}
+
+/*
+ * Minimal component-layer rules for markup Starlight generates
+ * (no way to attach Tailwind classes to it directly).
+ * Mobile first: base rules target phones, min-width queries add on top.
+ */
+@layer components {
+	/* Round the low-poly mascot so it sits nicely in the header. */
+	.site-title img {
+		border-radius: 0.25rem;
+	}
+
+	/* Hero: centered with a smaller logo on phones. */
+	[data-has-hero] .hero img {
+		width: min(14rem, 55vw);
+		height: auto;
+	}
+
+	@media (min-width: 50rem) {
+		[data-has-hero] .hero img {
+			width: 20rem;
+		}
+	}
+}
