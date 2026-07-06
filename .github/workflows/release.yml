@@ -20,11 +20,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: leafo/gh-actions-lua@v10
+      - uses: leafo/gh-actions-lua@v11
         with:
           luaVersion: ${{ matrix.lua }}
 
-      - uses: leafo/gh-actions-luarocks@v4
+      - uses: leafo/gh-actions-luarocks@v5
 
       - name: Install rust-mlua build backend
         run: luarocks install luarocks-build-rust-mlua
