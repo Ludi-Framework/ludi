@@ -177,10 +177,12 @@ make test             # cargo test + busted
 ```
 
 Or via LuaRocks: `luarocks make` builds and installs the rockspec locally,
-and `luarocks test` runs the busted suite.
+and `luarocks test` runs the busted suite. If `require("ludi")` isn't found
+after installing, load the LuaRocks paths into your shell:
+`eval "$(luarocks path)"`.
 
 The Lua version is selected by a cargo feature, e.g.
-`cargo build --release --features mlua/lua54`. When installing through
+`cargo build --release --features lua54`. When installing through
 LuaRocks, `luarocks-build-rust-mlua` picks the right feature automatically.
 
 ## Releases
