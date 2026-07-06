@@ -64,6 +64,32 @@ describe("app", function()
         assert.are.same({"global", "route", "handler"}, seen)
     end)
 
+    it("runs the handler inside a coroutine", function()
+        local app = ludi.new()
+        local yieldable
+        app:get("/co", function(_, res)
+            yieldable = coroutine.isyieldable()
+            res:send("ok")
+        end)
+
+        local out = dispatch(app, {method = "GET", path = "/co"})
+
+        assert.are.equal(200, out.status)
+        assert.is_true(yieldable)
+    end)
+
+    it("returns 500 when a handler yields without an async runtime", function()
+        local app = ludi.new()
+        app:get("/yield", function(_, res)
+            coroutine.yield()
+            res:send("never reached")
+        end)
+
+        local out = dispatch(app, {method = "GET", path = "/yield"})
+
+        assert.are.equal(500, out.status)
+    end)
+
     it("hands port and dispatcher to the native core", function()
         ludi.new():listen(8080)
 
