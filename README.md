@@ -155,6 +155,10 @@ app:listen(3000)   -- blocks; defaults to 3000 when omitted
 - Each hyper worker awaits its response on a oneshot channel, so slow
   handlers don't block connection accept.
 
+Design decisions and the planned evolution (async stdlib, worker model)
+are documented in [docs/architecture.md](docs/architecture.md) and
+[docs/adr/](docs/adr/).
+
 Repository layout (same shape as [Lapis](https://github.com/leafo/lapis)):
 
 ```
