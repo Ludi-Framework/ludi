@@ -9,7 +9,7 @@ LUA ?= lua54
 LUA_BIN ?= lua5.4
 
 dev:
-	cargo build --release --features mlua/$(LUA)
+	cargo build --release --features $(LUA)
 	ln -sf target/release/libludi_core.so ludi_core.so
 
 run: dev
@@ -18,7 +18,7 @@ run: dev
 # Lua specs need busted (luarocks install busted), the Lua ecosystem's
 # standard test framework. `luarocks test` works too.
 test:
-	cargo test --features mlua/$(LUA)
+	cargo test --features $(LUA)
 	busted
 
 .PHONY: dev run test
