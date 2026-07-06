@@ -20,4 +20,6 @@ app:post("/echo", function(req, res)
     res:status(200):send(req.body ~= "" and req.body or "Sem corpo")
 end)
 
-app:listen(3000)
+app:listen(3000, function()
+    print("Server listening on http://localhost:3000")
+end)

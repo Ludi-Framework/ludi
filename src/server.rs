@@ -14,20 +14,7 @@ use crate::types::{Job, Request};
 
 const MAX_BODY_BYTES: usize = 1024 * 1024;
 
-pub async fn serve(port: u16, jobs: mpsc::UnboundedSender<Job>) {
-    let listener = match TcpListener::bind(("0.0.0.0", port)).await {
-        Ok(listener) => listener,
-        Err(err) => {
-            eprintln!("ludi: failed to bind port {port}: {err}");
-            std::process::exit(1);
-        }
-    };
-
-    println!("Ludi listening on http://localhost:{port}");
-    serve_on(listener, jobs).await
-}
-
-async fn serve_on(listener: TcpListener, jobs: mpsc::UnboundedSender<Job>) {
+pub async fn serve(listener: TcpListener, jobs: mpsc::UnboundedSender<Job>) {
     loop {
         let (stream, _) = match listener.accept().await {
             Ok(conn) => conn,
@@ -120,7 +107,7 @@ mod tests {
         let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let (jobs_tx, jobs_rx) = mpsc::unbounded_channel();
-        tokio::spawn(serve_on(listener, jobs_tx));
+        tokio::spawn(serve(listener, jobs_tx));
         (port, jobs_rx)
     }
 

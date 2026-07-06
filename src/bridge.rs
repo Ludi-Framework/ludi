@@ -2,6 +2,7 @@
 //! responses between plain Lua tables and the native types.
 
 use mlua::prelude::*;
+use tokio::net::TcpListener;
 
 use crate::server;
 use crate::types::{Job, Request, Response};
@@ -12,14 +13,28 @@ use crate::types::{Job, Request, Response};
 /// through a channel; this thread pops them and invokes the Lua `dispatch`
 /// function. All Lua execution therefore stays on the thread that owns the
 /// Lua state — workers never touch the interpreter.
-pub fn start_server(lua: &Lua, (port, dispatch): (u16, LuaFunction)) -> LuaResult<()> {
+///
+/// `on_listen` runs on the Lua thread right after the port is bound, before
+/// any request is served. A failed bind raises a Lua error instead.
+pub fn start_server(
+    lua: &Lua,
+    (port, dispatch, on_listen): (u16, LuaFunction, Option<LuaFunction>),
+) -> LuaResult<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .into_lua_err()?;
 
+    let listener = runtime
+        .block_on(TcpListener::bind(("0.0.0.0", port)))
+        .map_err(|err| LuaError::runtime(format!("ludi: failed to bind port {port}: {err}")))?;
+
     let (jobs_tx, mut jobs_rx) = tokio::sync::mpsc::unbounded_channel::<Job>();
-    runtime.spawn(server::serve(port, jobs_tx));
+    runtime.spawn(server::serve(listener, jobs_tx));
+
+    if let Some(callback) = on_listen {
+        callback.call::<()>(())?;
+    }
 
     while let Some(job) = jobs_rx.blocking_recv() {
         let response = match dispatch.call::<LuaTable>(request_to_lua(lua, &job.request)?) {

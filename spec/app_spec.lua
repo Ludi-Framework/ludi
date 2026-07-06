@@ -97,4 +97,12 @@ describe("app", function()
         assert.are.equal(8080, core_stub.started.port)
         assert.are.equal("function", type(core_stub.started.dispatch))
     end)
+
+    it("runs the listen callback once the server is bound", function()
+        local called = false
+        ludi.new():listen(8080, function() called = true end)
+
+        assert.is_true(called)
+        assert.are.equal("function", type(core_stub.started.on_listen))
+    end)
 end)

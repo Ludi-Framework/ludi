@@ -16,12 +16,14 @@ app:get("/users/:id", function(req, res)
     res:json({ id = req.params.id })
 end)
 
-app:listen(3000)
+app:listen(3000, function()
+    print("Listening on http://localhost:3000")
+end)
 ```
 
 ```bash
 lua app.lua
-# Ludi listening on http://localhost:3000
+# Listening on http://localhost:3000
 ```
 
 ## Installation
@@ -131,7 +133,14 @@ Explicit headers win over the `Content-Type` that `send` sets by default.
 
 ```lua
 app:listen(3000)   -- blocks; defaults to 3000 when omitted
+
+app:listen(3000, function()   -- callback runs once the port is bound,
+    print("Ready!")           -- before any request is served
+end)
 ```
+
+Ludi prints nothing on startup — logging is the application's choice, in the
+callback. A port that cannot be bound raises a Lua error.
 
 ## Architecture
 
