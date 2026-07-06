@@ -22,6 +22,13 @@ describe("json", function()
         assert.are.equal(2, decoded.b)
     end)
 
+    it("parses whitespace before object keys", function()
+        local decoded = json.decode('{\n    "name": "Marcos",\n    "email": "marcos@email.com"\n}')
+
+        assert.are.equal("Marcos", decoded.name)
+        assert.are.equal("marcos@email.com", decoded.email)
+    end)
+
     it("roundtrips escaped strings", function()
         local decoded = json.decode(json.encode({s = 'quote " and \n newline'}))
 

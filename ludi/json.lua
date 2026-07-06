@@ -165,6 +165,7 @@ function json.decode(str)
             return res
         end
         while true do
+            skip_ws()
             local key = parse_string()
             skip_ws()
             assert(str:sub(idx, idx) == ":", "Expected ':' in object")
