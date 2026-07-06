@@ -11,6 +11,21 @@ local function escape_str(s)
     return s
 end
 
+-- utf8 is only available on Lua 5.3+; on LuaJIT/5.1 fall back to a plain
+-- codepoint-to-utf8 encoder.
+local function codepoint_to_utf8(code)
+    if utf8 and utf8.char then return utf8.char(code) end
+    if code < 0x80 then
+        return string.char(code)
+    elseif code < 0x800 then
+        return string.char(0xC0 + math.floor(code / 0x40), 0x80 + code % 0x40)
+    else
+        return string.char(0xE0 + math.floor(code / 0x1000),
+                           0x80 + math.floor(code / 0x40) % 0x40,
+                           0x80 + code % 0x40)
+    end
+end
+
 local function encode_value(v)
     local t = type(v)
     if t == "nil" then
@@ -87,7 +102,7 @@ function json.decode(str)
                 local next_c = str:sub(idx + 1, idx + 1)
                 if next_c == 'u' then
                     local hex = str:sub(idx + 2, idx + 5)
-                    res = res .. utf8.char(tonumber(hex, 16))
+                    res = res .. codepoint_to_utf8(tonumber(hex, 16))
                     idx = idx + 6
                 else
                     local escapes = {
@@ -113,7 +128,9 @@ function json.decode(str)
 
     parse_number = function()
         local start = idx
-        while str:sub(idx, idx):match("[0-9+-.eE]") do idx = idx + 1 end
+        -- '-' must be last inside the set, otherwise '+-.' reads as the
+        -- ASCII range 43-46 which accidentally includes ','
+        while str:sub(idx, idx):match("[0-9eE.+-]") do idx = idx + 1 end
         return tonumber(str:sub(start, idx - 1))
     end
 

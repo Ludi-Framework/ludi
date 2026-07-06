@@ -1,0 +1,32 @@
+[package]
+name = "ludi"
+version = "0.2.0"
+edition = "2024"
+
+[lib]
+name = "ludi_core"
+crate-type = ["cdylib"]
+
+# No Lua version is enabled by default: luarocks-build-rust-mlua passes the
+# right feature for the Lua that LuaRocks runs under. For a local build,
+# pass it yourself:
+#
+#   cargo build --release --features lua54
+#
+[features]
+lua51 = ["mlua/lua51"]
+lua52 = ["mlua/lua52"]
+lua53 = ["mlua/lua53"]
+lua54 = ["mlua/lua54"]
+luajit = ["mlua/luajit"]
+
+[dependencies]
+mlua = { version = "0.10", features = ["module"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["io-util"] }

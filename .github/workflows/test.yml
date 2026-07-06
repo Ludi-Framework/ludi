@@ -1,0 +1,30 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Lua headers
+        run: sudo apt-get update && sudo apt-get install -y liblua5.4-dev
+      - run: cargo test --features lua54
+
+  lua:
+    strategy:
+      matrix:
+        lua: ["5.4", "luajit"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: ${{ matrix.lua }}
+      - uses: leafo/gh-actions-luarocks@v4
+      - run: luarocks install busted
+      - run: busted
