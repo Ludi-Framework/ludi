@@ -59,6 +59,7 @@ website/
 │   └── content.config.ts    # Starlight content collection
 ├── astro.config.ts          # Site config: locales, sidebar, overrides
 ├── Dockerfile               # Multi-stage build → nginx static image
+├── docker-compose.yml       # Deploy: build + serve on port 8080
 ├── nginx.conf               # nginx config used by the Docker image
 └── tsconfig.json
 ```
@@ -106,10 +107,19 @@ per locale and collapses to just the ☕ icon on small screens.
 Multi-stage image: pnpm build in `node:22-alpine`, served by `nginx:alpine`.
 
 ```bash
-docker build -t ludi-docs .
-docker run --rm -p 8080:80 ludi-docs
+docker compose up -d --build
 # http://localhost:8080
 ```
+
+Or without compose:
+
+```bash
+docker build -t ludi-docs .
+docker run --rm -p 8080:80 ludi-docs
+```
+
+The compose service includes a healthcheck and `restart: unless-stopped`,
+ready for a small VPS deploy.
 
 `nginx.conf` handles Astro's pretty URLs, the 404 page, gzip and immutable
 caching for hashed assets under `/_astro/`.
