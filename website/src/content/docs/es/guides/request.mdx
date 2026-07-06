@@ -1,0 +1,50 @@
+---
+title: Request
+description: El objeto req — params, query, headers y body.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Cada handler y middleware recibe la petición como primer argumento.
+
+| Campo / método | Descripción                                                                  |
+| -------------- | ---------------------------------------------------------------------------- |
+| `req.method`   | Método HTTP, en mayúsculas (`"GET"`)                                         |
+| `req.path`     | Path sin la query string (`"/users/42"`)                                     |
+| `req.params`   | Params de path capturados por el router (`{ id = "42" }`)                    |
+| `req.query`    | Query string parseada (`?a=1` → `{ a = "1" }`)                               |
+| `req.headers`  | Headers de la petición, claves en minúsculas (`req.headers["content-type"]`) |
+| `req.body`     | Cuerpo crudo como string                                                     |
+| `req:json()`   | Decodifica el cuerpo como JSON; devuelve una tabla, o `nil` más un error     |
+
+## Leyendo cuerpos JSON
+
+`req:json()` sigue la convención de Lua de devolver `nil, err` en caso de
+fallo:
+
+```lua
+app:post("/items", function(req, res)
+    local body, err = req:json()
+    if not body then
+        return res:status(400):json({ error = "invalid JSON: " .. err })
+    end
+    res:status(201):json({ name = body.name })
+end)
+```
+
+## Límite de tamaño del cuerpo
+
+<Aside type="caution">
+	Los cuerpos están limitados a **1 MB**. Las peticiones más grandes se rechazan
+	con un `413` antes de llegar a tu código Lua.
+</Aside>
+
+## Headers
+
+Las claves de los headers se normalizan a minúsculas:
+
+```lua
+app:get("/ua", function(req, res)
+    res:send(req.headers["user-agent"] or "unknown")
+end)
+```
