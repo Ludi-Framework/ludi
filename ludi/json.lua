@@ -128,7 +128,9 @@ function json.decode(str)
 
     parse_number = function()
         local start = idx
-        while str:sub(idx, idx):match("[0-9+-.eE]") do idx = idx + 1 end
+        -- '-' must be last inside the set, otherwise '+-.' reads as the
+        -- ASCII range 43-46 which accidentally includes ','
+        while str:sub(idx, idx):match("[0-9eE.+-]") do idx = idx + 1 end
         return tonumber(str:sub(start, idx - 1))
     end
 
