@@ -1,0 +1,100 @@
+---
+/**
+ * Starlight `Footer` override: keeps the default footer (pagination,
+ * edit link) and appends a site footer with the logo and useful links.
+ *
+ * Note: Tailwind preflight is not loaded in the Starlight setup, so
+ * browser defaults (list bullets, heading/paragraph margins, link
+ * colors) are reset explicitly on each element.
+ */
+import Default from '@astrojs/starlight/components/Footer.astro';
+import { Image } from 'astro:assets';
+import logo from '../assets/ludi_logo.png';
+
+const GITHUB_URL = 'https://github.com/Ludi-Framework/ludi';
+const BMC_URL = 'https://buymeacoffee.com/marcosdanielr';
+
+const strings: Record<
+	string,
+	{ tagline: string; resources: string; docs: string; coffee: string }
+> = {
+	en: {
+		tagline: 'An Express-style web framework for Lua, powered by Rust.',
+		resources: 'Resources',
+		docs: 'Documentation',
+		coffee: 'Buy me a coffee',
+	},
+	es: {
+		tagline: 'Un framework web estilo Express para Lua, impulsado por Rust.',
+		resources: 'Recursos',
+		docs: 'Documentación',
+		coffee: 'Invítame a un café',
+	},
+	'pt-BR': {
+		tagline: 'Um framework web estilo Express para Lua, com motor em Rust.',
+		resources: 'Recursos',
+		docs: 'Documentação',
+		coffee: 'Me pague um café',
+	},
+};
+
+const lang = Astro.currentLocale ?? 'en';
+const t = strings[lang] ?? strings.en;
+
+const localePrefix = lang === 'es' ? '/es' : lang === 'pt-BR' ? '/pt-br' : '';
+const docsUrl = `${localePrefix}/getting-started/installation/`;
+
+const links = [
+	{ href: docsUrl, label: t.docs, external: false },
+	{ href: GITHUB_URL, label: 'GitHub', external: true },
+	{ href: BMC_URL, label: t.coffee, external: true },
+	{
+		href: `${GITHUB_URL}/blob/main/LICENSE`,
+		label: 'License (MIT)',
+		external: true,
+	},
+];
+---
+
+<Default><slot /></Default>
+
+<footer class="mt-16 border-t border-[var(--sl-color-hairline)] py-8">
+	<div class="flex flex-col gap-8 sm:flex-row sm:justify-between">
+		<div class="max-w-xs">
+			<div class="flex items-center gap-2.5">
+				<Image src={logo} alt="" width={56} class="h-7 w-auto" />
+				<span class="text-base font-semibold text-[var(--sl-color-white)]">
+					Ludi
+				</span>
+			</div>
+			<p
+				class="mt-3 mb-0 text-sm leading-relaxed text-[var(--sl-color-gray-3)]"
+			>
+				{t.tagline}
+			</p>
+		</div>
+		<nav aria-label={t.resources}>
+			<h2
+				class="m-0 text-xs font-semibold tracking-wider text-[var(--sl-color-gray-3)] uppercase"
+			>
+				{t.resources}
+			</h2>
+			<ul class="m-0 mt-3 flex list-none flex-col gap-2 p-0 text-sm">
+				{
+					links.map((link) => (
+						<li>
+							<a
+								href={link.href}
+								target={link.external ? '_blank' : undefined}
+								rel={link.external ? 'noopener noreferrer' : undefined}
+								class="text-[var(--sl-color-gray-2)] no-underline hover:text-[var(--sl-color-accent-high)]"
+							>
+								{link.label}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</nav>
+	</div>
+</footer>

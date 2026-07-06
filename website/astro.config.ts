@@ -29,6 +29,7 @@ export default defineConfig({
 			components: {
 				SocialIcons: './src/components/SocialIcons.astro',
 				Head: './src/components/Head.astro',
+				Footer: './src/components/Footer.astro',
 			},
 			defaultLocale: 'root',
 			locales: {
