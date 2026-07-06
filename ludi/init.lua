@@ -158,9 +158,14 @@ function Ludi:_dispatch(raw)
 end
 
 --- Starts the HTTP server and blocks serving requests.
+--- The callback runs once, right after the port is bound and before any
+--- request is served — the place for the application's own startup log.
+--- Raises an error when the port cannot be bound.
 ---@param port? integer defaults to 3000
-function Ludi:listen(port)
-    core.start_server(port or 3000, function(raw) return self:_dispatch(raw) end)
+---@param callback? fun()
+function Ludi:listen(port, callback)
+    core.start_server(port or 3000,
+                      function(raw) return self:_dispatch(raw) end, callback)
 end
 
 return Ludi
