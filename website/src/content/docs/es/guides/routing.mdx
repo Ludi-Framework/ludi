@@ -1,0 +1,46 @@
+---
+title: Rutas
+description: Métodos HTTP, parámetros de path y comportamiento de errores en Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Todos los métodos HTTP estándar están disponibles como métodos de la app:
+`get`, `post`, `put`, `delete`, `patch`, `options`, `head`.
+
+```lua
+app:get("/hello", function(req, res)
+    res:send("hi")
+end)
+
+app:post("/items", function(req, res)
+    res:status(201):json({ ok = true })
+end)
+```
+
+## Parámetros de path
+
+Los segmentos de path con prefijo `:` se capturan como params y se exponen en
+`req.params`:
+
+```lua
+app:get("/users/:id/posts/:post_id", function(req, res)
+    res:json({ user = req.params.id, post = req.params.post_id })
+end)
+```
+
+Los params siempre son strings — `/users/42` produce `req.params.id == "42"`.
+
+## Rutas sin coincidencia
+
+Las peticiones que no coinciden con ninguna ruta reciben un `404` con cuerpo
+JSON.
+
+## Errores en handlers
+
+Los errores lanzados dentro de un handler se capturan y se responden con un
+`500`.
+
+<Aside type="note">
+	El error se registra en stderr y **nunca se filtra al cliente**.
+</Aside>

@@ -1,0 +1,53 @@
+---
+title: Middlewares
+description: Global and per-route middleware chains in Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A middleware is a function `(req, res, next)`. The chain only advances when
+`next()` is called — not calling it halts the request, express-style.
+
+## Global middlewares
+
+Registered with `app:use`, they run for every request:
+
+```lua
+app:use(function(req, res, next)
+    print(req.method .. " " .. req.path)
+    next()
+end)
+```
+
+## Per-route middlewares
+
+Pass a single function — or a list — before the handler:
+
+```lua
+local function auth(req, res, next)
+    if req.headers["authorization"] then
+        next()
+    else
+        res:status(401):json({ error = "Unauthorized" })
+    end
+end
+
+app:get("/private", auth, function(req, res)
+    res:send("secret")
+end)
+
+app:get("/very-private", { auth, audit }, function(req, res)
+    res:send("very secret")
+end)
+```
+
+## Execution order
+
+<Aside type="tip">
+	Global middlewares → route middlewares → handler, always in registration
+	order.
+</Aside>
+
+A middleware that responds without calling `next()` short-circuits the chain
+— the handler never runs. That is how the `auth` example above rejects
+unauthenticated requests.

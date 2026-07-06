@@ -1,0 +1,128 @@
+/*
+ * Tailwind v4 + Starlight integration (@astrojs/starlight-tailwind).
+ * Ludi palette: purple accent taken from the logo. Starlight ships
+ * light/dark mode out of the box; the accent/gray ramps below feed
+ * both themes through the starlight-tailwind mapping.
+ */
+@layer base, starlight, theme, components, utilities;
+
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+	/* Accent: Ludi purple. starlight-tailwind maps 200/600/900/950. */
+	--color-accent-50: #f3f1fc;
+	--color-accent-100: #e9e5fa;
+	--color-accent-200: #c9c0f2;
+	--color-accent-300: #ab9ee9;
+	--color-accent-400: #8d7bdf;
+	--color-accent-500: #7a63d8;
+	--color-accent-600: #6f5bd6;
+	--color-accent-700: #5b47c2;
+	--color-accent-800: #4a3aa0;
+	--color-accent-900: #302566;
+	--color-accent-950: #221a4a;
+
+	/* Grays with a slight purple tint. starlight-tailwind maps 100–900. */
+	--color-gray-100: #f5f3fa;
+	--color-gray-200: #ebe8f2;
+	--color-gray-300: #c0bcce;
+	--color-gray-400: #8d87a3;
+	--color-gray-500: #59546e;
+	--color-gray-600: #393550;
+	--color-gray-700: #2d2945;
+	--color-gray-800: #27233e;
+	--color-gray-900: #17141f;
+
+	/* "Buy me a coffee" button; adapts to the active theme. */
+	--color-coffee: light-dark(#b07d10, #f0b429);
+}
+
+/*
+ * Minimal component-layer rules for markup Starlight generates
+ * (no way to attach Tailwind classes to it directly).
+ * Mobile first: base rules target phones, min-width queries add on top.
+ */
+@layer components {
+	/* Round the low-poly mascot so it sits nicely in the header. */
+	.site-title img {
+		border-radius: 0.25rem;
+	}
+
+	/* Prev/next pagination: compact cards instead of the huge default. */
+	.pagination-links {
+		gap: 0.75rem;
+	}
+
+	.pagination-links a {
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 0.75rem;
+		padding: 0.625rem 1rem;
+		box-shadow: none;
+		font-size: var(--sl-text-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--sl-color-gray-3);
+		align-items: center;
+	}
+
+	.pagination-links a:hover {
+		border-color: var(--sl-color-accent);
+	}
+
+	.pagination-links a svg {
+		font-size: 1.25rem;
+	}
+
+	.pagination-links .link-title {
+		margin-top: 0.125rem;
+		font-size: var(--sl-text-base);
+		font-weight: 500;
+		letter-spacing: normal;
+		text-transform: none;
+		color: var(--sl-color-white);
+	}
+
+	.pagination-links a:hover .link-title {
+		color: var(--sl-color-accent-high);
+	}
+
+	/*
+	 * Pin the site footer (see Footer.astro) to the bottom of the page:
+	 * the main column becomes a flex chain so `margin-top: auto` on the
+	 * footer absorbs the leftover vertical space on short pages.
+	 */
+	.main-pane {
+		display: flex;
+		flex-direction: column;
+		min-height: calc(100vh - var(--sl-nav-height));
+	}
+
+	.main-pane > main {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 0;
+	}
+
+	.main-pane > main > .content-panel:last-child {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 0;
+	}
+
+	.main-pane > main > .content-panel:last-child > .sl-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+	}
+
+	/* Breathing room between the default footer (edit link, pagination)
+	   and the pinned site footer, since `margin-top: auto` eats margins. */
+	.sl-container > footer.sl-flex {
+		margin-bottom: 3rem;
+	}
+}

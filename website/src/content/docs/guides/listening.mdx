@@ -1,0 +1,43 @@
+---
+title: Listening
+description: Starting the server with app:listen.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`app:listen` hands the socket to the Rust core and blocks the Lua thread.
+
+```lua
+app:listen(3000)   -- blocks; defaults to 3000 when omitted
+
+app:listen(3000, function()   -- callback runs once the port is bound,
+    print("Ready!")           -- before any request is served
+end)
+```
+
+## Startup logging
+
+Ludi prints nothing on startup — logging is the application's choice, in the
+callback:
+
+```lua
+app:listen(3000, function()
+    print("Listening on http://localhost:3000")
+end)
+```
+
+## Errors
+
+<Aside type="caution">
+	A port that cannot be bound (already in use, no permission) raises a regular
+	Lua error.
+</Aside>
+
+```lua
+local ok, err = pcall(function()
+    app:listen(80)
+end)
+if not ok then
+    print("failed to bind: " .. err)
+end
+```

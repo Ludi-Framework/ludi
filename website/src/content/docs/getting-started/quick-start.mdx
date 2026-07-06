@@ -1,0 +1,62 @@
+---
+title: Quick Start
+description: Write and run your first Ludi server in under a minute.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. Create an `app.lua` file:
+
+   ```lua
+   local ludi = require("ludi")
+
+   local app = ludi.new()
+
+   app:get("/", function(req, res)
+       res:send("Hello from Ludi!")
+   end)
+
+   app:get("/users/:id", function(req, res)
+       res:json({ id = req.params.id })
+   end)
+
+   app:listen(3000, function()
+       print("Listening on http://localhost:3000")
+   end)
+   ```
+
+2. Run it with any Lua interpreter:
+
+   ```bash
+   lua app.lua
+   # Listening on http://localhost:3000
+   ```
+
+3. Try it out:
+
+   ```bash
+   curl http://localhost:3000/
+   # Hello from Ludi!
+
+   curl http://localhost:3000/users/42
+   # {"id":"42"}
+   ```
+
+</Steps>
+
+## What just happened?
+
+- `ludi.new()` creates an app: a router plus a middleware chain.
+- `app:get(path, handler)` registers a route. Handlers receive a
+  [Request](/guides/request/) and a [Response](/guides/response/).
+- `app:listen(port, callback)` hands the socket to the Rust core (hyper +
+  tokio) and blocks. All your Lua code keeps running on a single thread —
+  concurrency lives in the runtime, Node-style.
+
+## Next steps
+
+- [Routing](/guides/routing/) — methods, path params, 404/500 behavior.
+- [Middlewares](/guides/middleware/) — global and per-route chains.
+- [Architecture](/advanced/architecture/) — how Lua and Rust split the work.

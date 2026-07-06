@@ -1,0 +1,11 @@
+---
+/**
+ * Starlight `SocialIcons` override: keeps the default social links
+ * (GitHub) and prepends the "Buy me a coffee" button.
+ */
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import BuyMeACoffee from './BuyMeACoffee.astro';
+---
+
+<BuyMeACoffee />
+<Default><slot /></Default>

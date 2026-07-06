@@ -1,0 +1,26 @@
+---
+/**
+ * "Buy me a coffee" pill button shown in the site header.
+ * Mobile first: only the cup icon on small screens, full label from lg up.
+ */
+const BMC_URL = 'https://buymeacoffee.com/marcosdanielr';
+
+const labels: Record<string, string> = {
+	en: 'Buy me a coffee',
+	es: 'Invítame a un café',
+	'pt-BR': 'Me pague um café',
+};
+
+const lang = Astro.currentLocale ?? 'en';
+const label = labels[lang] ?? labels.en;
+---
+
+<a
+	href={BMC_URL}
+	target="_blank"
+	rel="noopener noreferrer"
+	class="inline-flex items-center gap-1.5 rounded-full border border-coffee px-2.5 py-1 text-sm whitespace-nowrap text-coffee no-underline hover:bg-coffee/10 lg:px-3"
+>
+	<span aria-hidden="true">☕</span>
+	<span class="hidden lg:inline">{label}</span>
+</a>
