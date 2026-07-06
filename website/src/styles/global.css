@@ -50,20 +50,79 @@
 		border-radius: 0.25rem;
 	}
 
-	/* Prev/next pagination: lighter than the Starlight default. */
+	/* Prev/next pagination: compact cards instead of the huge default. */
+	.pagination-links {
+		gap: 0.75rem;
+	}
+
 	.pagination-links a {
 		border: 1px solid var(--sl-color-hairline);
-		border-radius: 0.5rem;
-		padding: 0.75rem 1rem;
+		border-radius: 0.75rem;
+		padding: 0.625rem 1rem;
 		box-shadow: none;
+		font-size: var(--sl-text-xs);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		color: var(--sl-color-gray-3);
+		align-items: center;
 	}
 
 	.pagination-links a:hover {
 		border-color: var(--sl-color-accent);
 	}
 
+	.pagination-links a svg {
+		font-size: 1.25rem;
+	}
+
 	.pagination-links .link-title {
-		font-size: var(--sl-text-lg);
+		margin-top: 0.125rem;
+		font-size: var(--sl-text-base);
 		font-weight: 500;
+		letter-spacing: normal;
+		text-transform: none;
+		color: var(--sl-color-white);
+	}
+
+	.pagination-links a:hover .link-title {
+		color: var(--sl-color-accent-high);
+	}
+
+	/*
+	 * Pin the site footer (see Footer.astro) to the bottom of the page:
+	 * the main column becomes a flex chain so `margin-top: auto` on the
+	 * footer absorbs the leftover vertical space on short pages.
+	 */
+	.main-pane {
+		display: flex;
+		flex-direction: column;
+		min-height: calc(100vh - var(--sl-nav-height));
+	}
+
+	.main-pane > main {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 0;
+	}
+
+	.main-pane > main > .content-panel:last-child {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		padding-bottom: 0;
+	}
+
+	.main-pane > main > .content-panel:last-child > .sl-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+	}
+
+	/* Breathing room between the default footer (edit link, pagination)
+	   and the pinned site footer, since `margin-top: auto` eats margins. */
+	.sl-container > footer.sl-flex {
+		margin-bottom: 3rem;
 	}
 }
