@@ -79,9 +79,23 @@ function Ludi:_dispatch(raw)
     local req = Request.new(raw, params)
     local res = Response.new()
 
-    local ok, err = pcall(run_chain, req, res, self.middlewares,
-                          route.middlewares,
-                          function() route.handler(req, res) end)
+    -- Every request runs inside a coroutine (ADR 0003). Nothing yields
+    -- yet; this is what lets the future async stdlib suspend handlers
+    -- without breaking existing applications.
+    local co = coroutine.create(function()
+        run_chain(req, res, self.middlewares, route.middlewares,
+                  function() route.handler(req, res) end)
+    end)
+
+    local ok, err = coroutine.resume(co)
+
+    if ok and coroutine.status(co) == "suspended" then
+        -- yielded with no async runtime to resume it (v1 has none)
+        ok = false
+        err = "coroutine yielded outside an async context"
+    end
+
+    if coroutine.close then coroutine.close(co) end
 
     if not ok then
         io.stderr:write(("ludi: handler error on %s %s: %s\n"):format(
