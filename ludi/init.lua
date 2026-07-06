@@ -4,18 +4,63 @@ local Request = require("ludi.request")
 local Response = require("ludi.response")
 local run_chain = require("ludi.middleware")
 
+---@alias ludi.Handler fun(req: ludi.Request, res: ludi.Response)
+---@alias ludi.Middleware fun(req: ludi.Request, res: ludi.Response, next: fun())
+
+--- Route registration method: (path, handler) or (path, middleware(s), handler).
+---@alias ludi.RouteMethod fun(self: Ludi, path: string, handler: ludi.Handler)|fun(self: Ludi, path: string, middlewares: ludi.Middleware|ludi.Middleware[], handler: ludi.Handler)
+
+---@class ludi.Route
+---@field method string
+---@field path string
+---@field segments ludi.RouteSegment[]
+---@field middlewares ludi.Middleware[]
+---@field handler ludi.Handler
+
+--- Raw request table handed over by ludi_core.
+---@class ludi.RawRequest
+---@field method string
+---@field path string
+---@field query? string
+---@field headers? table<string, string>
+---@field body? string
+
+--- Raw response table handed back to ludi_core.
+---@class ludi.RawResponse
+---@field status integer
+---@field headers table<string, string>
+---@field body string
+
+---@class Ludi
+---@field routes ludi.Route[]
+---@field middlewares ludi.Middleware[]
+---@field get ludi.RouteMethod
+---@field post ludi.RouteMethod
+---@field put ludi.RouteMethod
+---@field delete ludi.RouteMethod
+---@field patch ludi.RouteMethod
+---@field options ludi.RouteMethod
+---@field head ludi.RouteMethod
 local Ludi = {}
 Ludi.__index = Ludi
 
+---@return Ludi
 function Ludi.new()
     return setmetatable({routes = {}, middlewares = {}}, Ludi)
 end
 
+--- Registers a global middleware, run before every route.
+---@param middleware ludi.Middleware
 function Ludi:use(middleware)
     assert(type(middleware) == "function", "Middleware must be a function")
     table.insert(self.middlewares, middleware)
 end
 
+--- Registers a route. Prefer the verb helpers (get, post, ...).
+---@param method string uppercase HTTP verb, e.g. "GET"
+---@param path string path pattern, e.g. "/users/:id"
+---@param options? ludi.Middleware|ludi.Middleware[] route-level middleware(s)
+---@param handler ludi.Handler
 function Ludi:addRoute(method, path, options, handler)
     assert(type(handler) == "function", "Handler must be a function")
     local route_middlewares = {}
@@ -65,6 +110,8 @@ Ludi.head = makeMethod("HEAD")
 --- Entry point called by ludi_core for every request. Receives a plain
 --- table (method, path, query, headers, body) and must return a plain
 --- table (status, headers, body).
+---@param raw ludi.RawRequest
+---@return ludi.RawResponse
 function Ludi:_dispatch(raw)
     local route, params = Router.match(self.routes, raw.method, raw.path)
 
@@ -110,6 +157,8 @@ function Ludi:_dispatch(raw)
     return res:build()
 end
 
+--- Starts the HTTP server and blocks serving requests.
+---@param port? integer defaults to 3000
 function Ludi:listen(port)
     core.start_server(port or 3000, function(raw) return self:_dispatch(raw) end)
 end

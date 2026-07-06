@@ -53,8 +53,14 @@ local function encode_value(v)
     error("unsupported value: " .. t)
 end
 
+--- Encodes a Lua value as a JSON string.
+---@param tbl any
+---@return string
 function json.encode(tbl) return encode_value(tbl) end
 
+--- Decodes a JSON string into a Lua value. Raises on invalid JSON.
+---@param str string
+---@return any
 function json.decode(str)
     if type(str) ~= "string" or str == "" then return {} end
 
