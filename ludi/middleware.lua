@@ -1,6 +1,11 @@
 --- Runs global + route middlewares in order, then the handler.
 --- Each middleware receives (req, res, next); the chain only advances
 --- when next() is called, express-style.
+---@param req ludi.Request
+---@param res ludi.Response
+---@param global_middlewares ludi.Middleware[]
+---@param route_middlewares ludi.Middleware[]
+---@param handler fun()
 local function run_chain(req, res, global_middlewares, route_middlewares, handler)
     local chain = {}
 
