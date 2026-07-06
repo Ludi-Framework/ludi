@@ -1,0 +1,42 @@
+---
+title: Response
+description: O objeto res — status, headers, send e json.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Todo handler e middleware recebe a resposta como segundo argumento. Todos os
+métodos são encadeáveis.
+
+| Método                    | Descrição                                                  |
+| ------------------------- | ---------------------------------------------------------- |
+| `res:status(code)`        | Define o status code (padrão `200`)                        |
+| `res:header(name, value)` | Define um header da resposta                               |
+| `res:send(data)`          | String → `text/plain`; table → JSON com `application/json` |
+| `res:json(data)`          | Alias de `send` para tables                                |
+
+## Encadeamento
+
+```lua
+app:post("/items", function(req, res)
+    res:status(201)
+       :header("x-request-id", "abc123")
+       :json({ ok = true })
+end)
+```
+
+## Content types
+
+`send` escolhe o `Content-Type` a partir do valor passado:
+
+```lua
+res:send("plain text")        -- text/plain
+res:send({ some = "table" })  -- application/json
+res:json({ some = "table" })  -- application/json (alias)
+```
+
+<Aside type="note">
+	Headers explícitos vencem o `Content-Type` que o `send` define por padrão:
+	`res:header("content-type", "text/html"):send("<h1>hi</h1>")` responde como
+	HTML.
+</Aside>

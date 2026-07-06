@@ -1,0 +1,43 @@
+---
+title: Listening
+description: Iniciando o servidor com app:listen.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`app:listen` entrega o socket ao núcleo Rust e bloqueia a thread Lua.
+
+```lua
+app:listen(3000)   -- bloqueia; usa 3000 quando omitido
+
+app:listen(3000, function()   -- o callback roda quando a porta é vinculada,
+    print("Ready!")           -- antes de qualquer requisição ser atendida
+end)
+```
+
+## Log de inicialização
+
+O Ludi não imprime nada ao iniciar — logar é escolha da aplicação, no
+callback:
+
+```lua
+app:listen(3000, function()
+    print("Listening on http://localhost:3000")
+end)
+```
+
+## Erros
+
+<Aside type="caution">
+	Uma porta que não pode ser vinculada (já em uso, sem permissão) lança um erro
+	Lua comum.
+</Aside>
+
+```lua
+local ok, err = pcall(function()
+    app:listen(80)
+end)
+if not ok then
+    print("failed to bind: " .. err)
+end
+```

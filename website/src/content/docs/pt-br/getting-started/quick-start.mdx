@@ -1,0 +1,64 @@
+---
+title: Início rápido
+description: Escreva e rode seu primeiro servidor Ludi em menos de um minuto.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+<Steps>
+
+1. Crie um arquivo `app.lua`:
+
+   ```lua
+   local ludi = require("ludi")
+
+   local app = ludi.new()
+
+   app:get("/", function(req, res)
+       res:send("Hello from Ludi!")
+   end)
+
+   app:get("/users/:id", function(req, res)
+       res:json({ id = req.params.id })
+   end)
+
+   app:listen(3000, function()
+       print("Listening on http://localhost:3000")
+   end)
+   ```
+
+2. Rode com qualquer interpretador Lua:
+
+   ```bash
+   lua app.lua
+   # Listening on http://localhost:3000
+   ```
+
+3. Experimente:
+
+   ```bash
+   curl http://localhost:3000/
+   # Hello from Ludi!
+
+   curl http://localhost:3000/users/42
+   # {"id":"42"}
+   ```
+
+</Steps>
+
+## O que aconteceu?
+
+- `ludi.new()` cria um app: um roteador mais uma cadeia de middlewares.
+- `app:get(path, handler)` registra uma rota. Handlers recebem um
+  [Request](/pt-br/guides/request/) e um [Response](/pt-br/guides/response/).
+- `app:listen(port, callback)` entrega o socket ao núcleo Rust (hyper +
+  tokio) e bloqueia. Todo o seu código Lua continua rodando em uma única
+  thread — a concorrência vive no runtime, estilo Node.
+
+## Próximos passos
+
+- [Rotas](/pt-br/guides/routing/) — métodos, parâmetros de path,
+  comportamento de 404/500.
+- [Middlewares](/pt-br/guides/middleware/) — cadeias globais e por rota.
+- [Arquitetura](/pt-br/advanced/architecture/) — como Lua e Rust dividem o
+  trabalho.
