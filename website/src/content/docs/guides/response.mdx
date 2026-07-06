@@ -1,0 +1,42 @@
+---
+title: Response
+description: The res object — status, headers, send and json.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every handler and middleware receives the response as its second argument.
+All methods are chainable.
+
+| Method                    | Description                                                 |
+| ------------------------- | ----------------------------------------------------------- |
+| `res:status(code)`        | Sets the status code (default `200`)                        |
+| `res:header(name, value)` | Sets a response header                                      |
+| `res:send(data)`          | String → `text/plain`; table → JSON with `application/json` |
+| `res:json(data)`          | Alias of `send` for tables                                  |
+
+## Chaining
+
+```lua
+app:post("/items", function(req, res)
+    res:status(201)
+       :header("x-request-id", "abc123")
+       :json({ ok = true })
+end)
+```
+
+## Content types
+
+`send` picks the `Content-Type` from the value you pass:
+
+```lua
+res:send("plain text")        -- text/plain
+res:send({ some = "table" })  -- application/json
+res:json({ some = "table" })  -- application/json (alias)
+```
+
+<Aside type="note">
+	Explicit headers win over the `Content-Type` that `send` sets by default:
+	`res:header("content-type", "text/html"):send("<h1>hi</h1>")` responds as
+	HTML.
+</Aside>

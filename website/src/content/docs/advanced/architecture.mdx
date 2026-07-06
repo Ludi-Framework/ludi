@@ -1,0 +1,70 @@
+---
+title: Architecture
+description: How Ludi splits work between Rust and Lua.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Ludi is a web framework where application code is Lua and the runtime is
+Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)).
+
+```
+                    ┌────────────────────────────┐
+ HTTP clients ───▶  │  Rust: hyper + tokio       │   ludi_core (native module)
+                    │  worker threads            │
+                    └────────────┬───────────────┘
+                          mpsc channel (one Job per request)
+                    ┌────────────▼───────────────┐
+                    │  Lua thread (your app)     │   routing, middlewares,
+                    │  single-threaded, Node-like│   handlers — plain Lua
+                    └────────────────────────────┘
+```
+
+- **Rust is transport only**: it parses HTTP, enforces limits, and forwards
+  each request through a channel. It knows nothing about routes.
+- **All Lua runs on a single thread** — the interpreter that called
+  `app:listen()`. Worker threads never touch the interpreter, so there are
+  no cross-thread callbacks and no FFI.
+- Each hyper worker awaits its response on a oneshot channel, so slow
+  handlers don't block connection accept.
+
+## Concurrency model
+
+- **Lua code is always single-threaded.** A handler never runs in parallel
+  with another handler on the same VM. No locks, no data races in
+  application code.
+- Concurrency comes from the runtime: socket I/O is parallel in Rust.
+- Every handler runs inside a coroutine from v1, even though nothing yields
+  yet. This makes the future async API a non-breaking change.
+
+## Request lifecycle
+
+1. A hyper worker reads the request and enforces the body size limit.
+2. The request crosses to the Lua side as a plain table; the router matches
+   method + path segments, extracting `:params`.
+3. Global middlewares, route middlewares, handler — run inside one
+   coroutine, chained by explicit `next()` calls.
+4. Handler errors are caught (`pcall`): the client gets a `500`, the error
+   is logged to stderr, never leaked.
+5. The response table crosses back; hyper writes it out.
+
+## Planned evolution
+
+1. ✅ Single VM, stable public API.
+2. Async standard library (HTTP client, SQL, filesystem) on the coroutine
+   bridge.
+3. Multiple workers: SO_REUSEPORT, one hyper + one VM per worker — the Node
+   cluster model.
+4. Memory optimizations: fewer copies on the request/response path.
+
+<Aside type="note">
+	Individual decisions, with alternatives and trade-offs, live as ADRs in the
+	repository:
+	[docs/adr/](https://github.com/Ludi-Framework/ludi/tree/main/docs/adr).
+</Aside>
+
+## Non-goals
+
+- Exposing Rust, tokio or mlua concepts to application code.
+- Multi-threaded Lua. Parallelism is per-VM, never intra-VM.
+- Being a batteries-included MVC framework. Ludi is the HTTP layer.

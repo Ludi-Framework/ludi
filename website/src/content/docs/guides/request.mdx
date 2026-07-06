@@ -1,0 +1,49 @@
+---
+title: Request
+description: The req object — params, query, headers and body.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every handler and middleware receives the request as its first argument.
+
+| Field / method | Description                                                       |
+| -------------- | ----------------------------------------------------------------- |
+| `req.method`   | HTTP method, uppercase (`"GET"`)                                  |
+| `req.path`     | Path without query string (`"/users/42"`)                         |
+| `req.params`   | Path params captured by the router (`{ id = "42" }`)              |
+| `req.query`    | Parsed query string (`?a=1` → `{ a = "1" }`)                      |
+| `req.headers`  | Request headers, lowercase keys (`req.headers["content-type"]`)   |
+| `req.body`     | Raw body as a string                                              |
+| `req:json()`   | Decodes the body as JSON; returns a table, or `nil` plus an error |
+
+## Reading JSON bodies
+
+`req:json()` follows the Lua convention of returning `nil, err` on failure:
+
+```lua
+app:post("/items", function(req, res)
+    local body, err = req:json()
+    if not body then
+        return res:status(400):json({ error = "invalid JSON: " .. err })
+    end
+    res:status(201):json({ name = body.name })
+end)
+```
+
+## Body size limit
+
+<Aside type="caution">
+	Bodies are limited to **1 MB**. Larger requests are rejected with a `413`
+	before they ever reach your Lua code.
+</Aside>
+
+## Headers
+
+Header keys are normalized to lowercase:
+
+```lua
+app:get("/ua", function(req, res)
+    res:send(req.headers["user-agent"] or "unknown")
+end)
+```

@@ -1,0 +1,44 @@
+---
+title: Routing
+description: HTTP methods, path parameters and error behavior in Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+All standard HTTP methods are available as app methods: `get`, `post`, `put`,
+`delete`, `patch`, `options`, `head`.
+
+```lua
+app:get("/hello", function(req, res)
+    res:send("hi")
+end)
+
+app:post("/items", function(req, res)
+    res:status(201):json({ ok = true })
+end)
+```
+
+## Path parameters
+
+Path segments prefixed with `:` are captured as params and exposed on
+`req.params`:
+
+```lua
+app:get("/users/:id/posts/:post_id", function(req, res)
+    res:json({ user = req.params.id, post = req.params.post_id })
+end)
+```
+
+Params are always strings — `/users/42` yields `req.params.id == "42"`.
+
+## Unmatched routes
+
+Requests that match no route get a `404` with a JSON body.
+
+## Errors in handlers
+
+Errors thrown inside a handler are caught and answered with a `500`.
+
+<Aside type="note">
+	The error is logged to stderr and **never leaked to the client**.
+</Aside>

@@ -1,0 +1,52 @@
+---
+title: Installation
+description: How to install Ludi with LuaRocks, globally or per project.
+---
+
+import { TabItem, Tabs } from '@astrojs/starlight/components';
+
+Ludi is distributed through [LuaRocks](https://luarocks.org).
+
+<Tabs>
+	<TabItem label="Global">
+
+    ```bash
+    luarocks install ludi
+    ```
+
+    </TabItem>
+    <TabItem label="Per project">
+
+    ```bash
+    luarocks install ludi --tree lua_modules
+    ```
+
+    </TabItem>
+
+</Tabs>
+
+The per-project install works like `node_modules`: rocks land in a local
+`lua_modules` directory instead of the system tree.
+
+## Prebuilt binaries
+
+Prebuilt binary rocks are published for **Linux** and **macOS** (Lua 5.4 and
+LuaJIT), so no Rust toolchain is needed.
+
+On platforms without a prebuilt rock, LuaRocks falls back to building from
+source, which requires [Rust](https://rustup.rs) installed.
+
+## Requirements
+
+- Lua 5.1+ or LuaJIT
+- LuaRocks 3.x
+- Rust (only when building from source)
+
+## Loading LuaRocks paths
+
+If `require("ludi")` isn't found after installing, load the LuaRocks paths
+into your shell:
+
+```bash
+eval "$(luarocks path)"
+```
