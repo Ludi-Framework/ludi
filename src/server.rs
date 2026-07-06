@@ -110,3 +110,98 @@ fn plain(status: StatusCode, message: &str) -> HyperResponse<Full<Bytes>> {
         .unwrap()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::Response;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    async fn spawn_test_server() -> (u16, mpsc::UnboundedReceiver<Job>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let (jobs_tx, jobs_rx) = mpsc::unbounded_channel();
+        tokio::spawn(serve_on(listener, jobs_tx));
+        (port, jobs_rx)
+    }
+
+    async fn raw_request(port: u16, request: &str) -> String {
+        let mut stream = tokio::net::TcpStream::connect(("127.0.0.1", port))
+            .await
+            .unwrap();
+        stream.write_all(request.as_bytes()).await.unwrap();
+        let mut buf = Vec::new();
+        stream.read_to_end(&mut buf).await.unwrap();
+        String::from_utf8_lossy(&buf).into_owned()
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn request_reaches_handler_and_response_comes_back() {
+        let (port, mut jobs_rx) = spawn_test_server().await;
+
+        // Emulates the Lua thread: echoes the parsed request back.
+        tokio::spawn(async move {
+            while let Some(job) = jobs_rx.recv().await {
+                let req = &job.request;
+                let body = format!(
+                    "method={};path={};query={};body={}",
+                    req.method,
+                    req.path,
+                    req.query,
+                    String::from_utf8_lossy(&req.body)
+                );
+                let _ = job.respond.send(Response {
+                    status: 201,
+                    headers: vec![("X-Test".into(), "1".into())],
+                    body: body.into_bytes(),
+                });
+            }
+        });
+
+        let response = raw_request(
+            port,
+            "POST /echo?a=1 HTTP/1.1\r\nHost: t\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello",
+        )
+        .await;
+
+        assert!(response.starts_with("HTTP/1.1 201"), "got: {response}");
+        assert!(response.to_lowercase().contains("x-test: 1"), "got: {response}");
+        assert!(
+            response.contains("method=POST;path=/echo;query=a=1;body=hello"),
+            "got: {response}"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn dropped_handler_returns_500() {
+        let (port, mut jobs_rx) = spawn_test_server().await;
+
+        tokio::spawn(async move {
+            while let Some(job) = jobs_rx.recv().await {
+                drop(job.respond);
+            }
+        });
+
+        let response = raw_request(
+            port,
+            "GET / HTTP/1.1\r\nHost: t\r\nConnection: close\r\n\r\n",
+        )
+        .await;
+
+        assert!(response.starts_with("HTTP/1.1 500"), "got: {response}");
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn oversized_body_returns_413() {
+        let (port, _jobs_rx) = spawn_test_server().await;
+
+        let body = "x".repeat(MAX_BODY_BYTES + 1);
+        let request = format!(
+            "POST / HTTP/1.1\r\nHost: t\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        let response = raw_request(port, &request).await;
+
+        assert!(response.starts_with("HTTP/1.1 413"), "got: {response}");
+    }
+}
