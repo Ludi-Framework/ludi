@@ -1,0 +1,61 @@
+---
+/**
+ * Starlight `Head` override: keeps the default head and adds client-side
+ * locale detection.
+ *
+ * - First visit to the site root: redirects to the locale matching
+ *   `navigator.languages` (es / pt-BR), when there is one.
+ * - The language picker remains the user override: picking a language is
+ *   stored in localStorage and wins over browser detection on later visits.
+ * - Deep links are never hijacked: the redirect only runs on `/`.
+ */
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default><slot /></Default>
+
+<script>
+	const KEY = 'ludi-locale';
+	const LOCALES = ['en', 'es', 'pt-br'] as const;
+	type Locale = (typeof LOCALES)[number];
+
+	const localeOfPath = (pathname: string): Locale => {
+		const first = pathname.split('/').filter(Boolean)[0] ?? '';
+		return (LOCALES as readonly string[]).includes(first)
+			? (first as Locale)
+			: 'en';
+	};
+
+	const detectBrowserLocale = (): Locale => {
+		for (const tag of navigator.languages ?? [navigator.language]) {
+			const lang = tag.toLowerCase();
+			if (lang.startsWith('pt')) return 'pt-br';
+			if (lang.startsWith('es')) return 'es';
+			if (lang.startsWith('en')) return 'en';
+		}
+		return 'en';
+	};
+
+	// Persist the user's explicit choice made through the language picker.
+	document.addEventListener('change', (event) => {
+		const select = event.target;
+		if (
+			select instanceof HTMLSelectElement &&
+			select.closest('starlight-lang-select')
+		) {
+			localStorage.setItem(KEY, localeOfPath(select.value));
+		}
+	});
+
+	// Only ever redirect from the site root, never from deep links.
+	if (window.location.pathname === '/') {
+		const stored = localStorage.getItem(KEY);
+		const target =
+			stored && (LOCALES as readonly string[]).includes(stored)
+				? (stored as Locale)
+				: detectBrowserLocale();
+		if (target !== 'en') {
+			window.location.replace(`/${target}/`);
+		}
+	}
+</script>
