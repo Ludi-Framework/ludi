@@ -25,6 +25,8 @@ jobs:
           luaVersion: ${{ matrix.lua }}
 
       - uses: leafo/gh-actions-luarocks@v5
+        with:
+          luarocksVersion: "3.13.0"
 
       - name: Install rust-mlua build backend
         run: luarocks install luarocks-build-rust-mlua
