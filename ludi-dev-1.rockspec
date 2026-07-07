@@ -43,6 +43,7 @@ build = {
          ["ludi"] = "ludi/init.lua",
          ["ludi.router"] = "ludi/router.lua",
          ["ludi.group"] = "ludi/group.lua",
+         ["ludi.ws"] = "ludi/ws.lua",
          ["ludi.request"] = "ludi/request.lua",
          ["ludi.response"] = "ludi/response.lua",
          ["ludi.middleware"] = "ludi/middleware.lua",
