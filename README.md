@@ -32,7 +32,7 @@ lua app.lua
 luarocks install ludi
 ```
 
-Prebuilt binary rocks are published for Linux and macOS (Lua 5.4 and LuaJIT),
+Prebuilt binary rocks are published for Linux and macOS (Lua 5.4, 5.5 and LuaJIT),
 so no Rust toolchain is needed. On platforms without a prebuilt rock,
 LuaRocks falls back to building from source, which requires
 [Rust](https://rustup.rs) installed.
@@ -142,6 +142,30 @@ end)
 Ludi prints nothing on startup — logging is the application's choice, in the
 callback. A port that cannot be bound raises a Lua error.
 
+### Hot reload (development)
+
+```bash
+LUDI_WATCH=1 lua app.lua
+```
+
+With `LUDI_WATCH=1`, Ludi watches every `*.lua` file under the working
+directory and hot-reloads the application on change — no restart, no
+rebinding the port, in-flight requests are never interrupted:
+
+1. A change is detected (new, edited or deleted `.lua` file).
+2. Application modules are dropped from `package.loaded`, so `require`
+   re-reads them. The Lua stdlib and ludi itself are kept.
+3. The entrypoint (`app.lua`) is re-executed; its `app:listen()` call is
+   intercepted and the new app replaces the old one in place.
+
+A reload that fails — syntax error, error at load time — is logged to
+stderr and the previous version keeps serving until the next change.
+State living in module locals is reset on reload, like restarting the
+process; the `listen` callback does not run again.
+
+Intended for development only: leave `LUDI_WATCH` unset in production
+(the watcher polls the filesystem and reloads on any deploy write).
+
 ## Architecture
 
 ```
@@ -171,19 +195,20 @@ are documented in [docs/architecture.md](docs/architecture.md) and
 Repository layout (same shape as [Lapis](https://github.com/leafo/lapis)):
 
 ```
-ludi/          Lua package (init, router, request, response, middleware, json)
-src/           Rust native module (lib, server, bridge, types)
+ludi/          Lua package (init, router, request, response, middleware, json, reload)
+src/           Rust native module (lib, server, bridge, types, watch)
 spec/          busted specs
 examples/      runnable examples
 ```
 
 ## Development
 
-Requires Rust, a Lua (5.1+ or LuaJIT) with headers, and
+Requires Rust, a Lua (5.1+ or LuaJIT — 5.5 recommended) with headers, and
 [busted](https://lunarmodules.github.io/busted/) for the Lua specs.
 
 ```bash
-make dev              # build the native module for Lua 5.4
+make dev              # build the native module for Lua 5.5 (recommended)
+make dev LUA=lua54    # ... or for Lua 5.4
 make dev LUA=luajit   # ... or for LuaJIT
 make run              # build + run examples/hello.lua
 make test             # cargo test + busted

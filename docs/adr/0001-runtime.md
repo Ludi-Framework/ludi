@@ -31,7 +31,7 @@ prebuilt binary rocks per platform/Lua so end users need no Rust toolchain.
 
 ## Consequences
 
-- Works on Lua 5.1–5.4 and LuaJIT; no `unsafe` at the boundary.
+- Works on Lua 5.1–5.5 (5.5 recommended) and LuaJIT; no `unsafe` at the boundary.
 - The Lua version is selected at compile time (cargo features `lua54`,
   `luajit`, ...), so binary rocks are built per platform × Lua version.
 - Because the user's interpreter owns the main VM, additional VMs (worker
