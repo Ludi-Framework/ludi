@@ -17,9 +17,8 @@ ludi build server.lua -o api  # o entry y nombre de salida explícitos
 El build es instantáneo: ningún compilador corre. `ludi build` empaqueta
 todos los archivos `*.lua` bajo el directorio actual en una copia del
 runtime de `ludi` — un Lua 5.5 estático, el framework y tu código en un
-solo archivo. Los directorios ocultos, `target/`, `lua_modules/` y
-`node_modules/` quedan fuera, las mismas reglas del watcher del
-hot-reload.
+solo archivo. Los directorios ocultos, `target/` y `lua_modules/`
+quedan fuera, las mismas reglas del watcher del hot-reload.
 
 En ejecución, `require` resuelve desde dentro del bundle; el filesystem
 nunca se consulta para módulos. El deploy es `scp` y ejecutar.

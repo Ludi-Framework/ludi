@@ -20,12 +20,11 @@ Usage:
   ludi version                           print the version
 
 The build embeds a static Lua 5.5, the framework and every *.lua file
-under the current directory (hidden dirs, target/, lua_modules/ and
-node_modules/ excluded). The output runs anywhere: no Lua, no LuaRocks.
+under the current directory. The output runs anywhere: no Lua, no
+LuaRocks.
 
 Defaults: entry is app.lua, server.lua, main.lua or init.lua when exactly
-one of them exists (ambiguity asks for an explicit entry); output is the
-current directory's name.";
+one of them exists; output is the current directory's name.";
 
 fn main() -> ExitCode {
     match bundle::read_own_bundle() {

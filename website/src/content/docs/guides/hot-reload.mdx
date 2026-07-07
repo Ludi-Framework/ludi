@@ -37,8 +37,8 @@ ludi: reload failed, keeping previous version: app.lua:12: syntax error near ')'
 - State living in module locals is reset on reload, like restarting the
   process.
 - The `listen` callback does not run again — the port is bound once.
-- Files inside hidden directories, `target/`, `lua_modules/` and
-  `node_modules/` are ignored.
+- Files inside hidden directories, `target/` and `lua_modules/` are
+  ignored.
 
 <Aside type="caution">
 	Intended for development only: leave `LUDI_WATCH` unset in production —

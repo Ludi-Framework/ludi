@@ -13,9 +13,11 @@ use crate::types::Msg;
 
 const POLL_INTERVAL: Duration = Duration::from_millis(300);
 
-/// Directories that never contain application sources. Shared with the
-/// bundler, so `ludi build` packs exactly what the watcher watches.
-pub(crate) const SKIPPED_DIRS: &[&str] = &["target", "lua_modules", "node_modules"];
+/// Directories that never contain application sources: the Rust build
+/// output and the per-project rock tree (`luarocks --tree lua_modules`).
+/// Shared with the bundler, so `ludi build` packs exactly what the
+/// watcher watches.
+pub(crate) const SKIPPED_DIRS: &[&str] = &["target", "lua_modules"];
 
 pub fn spawn(root: PathBuf, tx: mpsc::UnboundedSender<Msg>) {
     std::thread::spawn(move || {
