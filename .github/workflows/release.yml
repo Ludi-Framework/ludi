@@ -58,6 +58,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
+    # LUAROCKS_API_KEY lives in the Production environment's secrets.
+    environment: Production
     steps:
       - uses: actions/checkout@v4
 
