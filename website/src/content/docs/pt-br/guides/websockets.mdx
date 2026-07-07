@@ -1,0 +1,137 @@
+---
+title: WebSockets
+description: Rotas, conexões e eventos WebSocket nativos no Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+WebSockets são nativos do Ludi — sem biblioteca extra, sem servidor
+separado, mesma porta do HTTP. O core nativo cuida do protocolo
+(handshake, frames, ping/pong); seus handlers continuam Lua puro.
+
+`app:ws(path)` registra uma rota WebSocket. O handler roda uma vez por
+conexão, logo depois do handshake:
+
+```lua
+app:ws("/chat/:room", function(conn, req)
+    print("entrou em " .. req.params.room)
+
+    conn:on("message", function(data, binary)
+        conn:send("echo: " .. data)
+    end)
+
+    conn:on("close", function(code, reason)
+        print("saiu de " .. req.params.room)
+    end)
+end)
+```
+
+Parâmetros de caminho, query string e headers chegam em `req` exatamente
+como em um handler HTTP; `req.body` é sempre vazio.
+
+## A conexão
+
+| Método / campo | Descrição |
+| --- | --- |
+| `conn:on(event, fn)` | Registra um listener; uma conexão pode ter vários por evento |
+| `conn:send(data, binary?)` | Envia um frame de texto — ou binário quando `binary` é `true` |
+| `conn:close(code?, reason?)` | Inicia o fechamento; `code` padrão é `1000` |
+| `conn.closed` | `true` depois que o evento `"close"` disparou |
+
+Eventos:
+
+- `"message"` `(data, binary)` — chegou um frame. `data` é uma string;
+  `binary` distingue frames de texto e binários.
+- `"close"` `(code, reason)` — a conexão acabou. Sempre o último evento —
+  nenhum `"message"` chega depois dele; `code` pode ser `nil` quando o
+  peer não enviou nenhum.
+- `"error"` `(err)` — erro de protocolo; um close vem em seguida. `err` é
+  uma tabela com o campo `message`.
+
+`conn:send` enfileira o frame no lado nativo e nunca bloqueia; retorna
+`false` quando a conexão já fechou. Mensagens têm teto de 1 MB, como os
+corpos HTTP.
+
+Handlers podem guardar conexões — é assim que se faz um broadcast:
+
+```lua
+local room = {}
+
+app:ws("/chat", function(conn)
+    table.insert(room, conn)
+
+    conn:on("message", function(data)
+        for _, peer in ipairs(room) do
+            peer:send(data)
+        end
+    end)
+
+    conn:on("close", function()
+        for i, peer in ipairs(room) do
+            if peer == conn then table.remove(room, i) break end
+        end
+    end)
+end)
+```
+
+## Middlewares e o handshake
+
+Middlewares — globais, por rota e via
+[grupos de rotas](/pt-br/guides/route-groups/) — rodam na hora do
+handshake com a assinatura usual `(req, res, next)`. Responder em vez de
+chamar `next()` rejeita o handshake com aquela resposta HTTP:
+
+```lua
+local function auth(req, res, next)
+    if req.headers["authorization"] then
+        next()
+    else
+        res:status(401):json({ error = "Unauthorized" })
+    end
+end
+
+app:ws("/private", { auth }, function(conn)
+    conn:send("welcome")
+end)
+```
+
+O `req` que o handler recebe é o mesmo objeto que os middlewares viram —
+o que carrega `req.params`, `req.query` e `req.headers` — então tudo que
+um middleware anexar viaja junto:
+
+```lua
+local function auth(req, res, next)
+    req.user = lookup(req.headers["authorization"])
+    if req.user then next() else res:status(401):send("no") end
+end
+
+app:ws("/private", { auth }, function(conn, req)
+    conn:send("hello " .. req.user.name)
+end)
+```
+
+Grupos também funcionam, com prefixo e middlewares:
+
+```lua
+app:group("/api", { auth }, function(api)
+    api:ws("/live", function(conn) ... end)   -- ws://host/api/live
+end)
+```
+
+<Aside type="note">
+	Requisições para um caminho ws sem os headers de upgrade caem no router
+	normal — e levam o `404` dele. Um handshake para um caminho sem rota ws
+	também é rejeitado com `404`.
+</Aside>
+
+## Erros
+
+Um erro dentro do handler da conexão fecha a conexão com código `1011`;
+erros em listeners são logados (com moldura em modo dev, uma linha em
+produção) e a conexão segue aberta. Nada vaza para o cliente.
+
+## Hot reload
+
+Com o [hot reload](/pt-br/guides/hot-reload/) ligado, conexões abertas
+sobrevivem ao reload: continuam rodando os handlers com que foram abertas
+até o peer desconectar. Conexões novas pegam o código novo.

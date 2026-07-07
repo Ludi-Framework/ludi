@@ -2,6 +2,7 @@ mod bridge;
 mod server;
 mod types;
 mod watch;
+mod ws;
 
 #[cfg(feature = "cli")]
 pub mod bundle;

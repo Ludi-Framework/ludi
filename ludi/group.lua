@@ -120,6 +120,33 @@ function Group:group(prefix, middlewares, body)
                      middlewares, body)
 end
 
+--- Registers a WebSocket route on the root application, with the group
+--- prefix prepended and the group middlewares before the route's own.
+---@param path string
+---@param options? ludi.Middleware|ludi.Middleware[]
+---@param handler ludi.WsHandler
+function Group:addWsRoute(path, options, handler)
+    local merged = copy(self.middlewares)
+    for _, middleware in ipairs(to_list(options)) do
+        table.insert(merged, middleware)
+    end
+    self.app:addWsRoute(join(self.prefix, path), merged, handler)
+end
+
+--- Registers a WebSocket route under the group prefix; the group
+--- middlewares run at handshake time before the route's own.
+---@param path string
+---@param middlewares? ludi.Middleware|ludi.Middleware[]
+---@param handler ludi.WsHandler
+---@overload fun(self: ludi.Group, path: string, handler: ludi.WsHandler)
+function Group:ws(path, middlewares, handler)
+    if handler == nil then
+        self:addWsRoute(path, nil, middlewares --[[@as ludi.WsHandler]])
+    else
+        self:addWsRoute(path, middlewares, handler)
+    end
+end
+
 local function makeMethod(method)
     return function(self, path, ...)
         local args = {...}

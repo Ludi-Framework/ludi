@@ -40,6 +40,8 @@ hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 http-body-util = "0.1"
 bytes = "1"
+tokio-tungstenite = { version = "0.26", default-features = false, features = ["handshake"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["io-util"] }
