@@ -5,7 +5,7 @@ use mlua::prelude::*;
 use tokio::net::TcpListener;
 
 use crate::server;
-use crate::types::{Msg, Request, Response};
+use crate::types::{Msg, Request, Response, WsDecision, WsEvent};
 use crate::watch;
 
 /// Blocks the calling (Lua) thread serving HTTP until the process exits.
@@ -21,13 +21,18 @@ use crate::watch;
 /// `on_reload` (dev mode) enables the file watcher: `*.lua` changes under
 /// the working directory arrive as `Msg::Reload` on the same channel, so
 /// the callback also runs on the Lua thread, never during a request.
+///
+/// `ws` holds the WebSocket callbacks — `upgrade(id, raw) -> decision`,
+/// `open(id, handle)` and `event(id, kind, ...)` — all invoked on the Lua
+/// thread like `dispatch`. Without it every handshake is answered 404.
 pub fn start_server(
     lua: &Lua,
-    (port, dispatch, on_listen, on_reload): (
+    (port, dispatch, on_listen, on_reload, ws): (
         u16,
         LuaFunction,
         Option<LuaFunction>,
         Option<LuaFunction>,
+        Option<LuaTable>,
     ),
 ) -> LuaResult<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -65,6 +70,33 @@ pub fn start_server(
                 };
 
                 let _ = job.respond.send(response);
+            }
+            Msg::WsUpgrade(upgrade) => {
+                let decision = match &ws {
+                    None => WsDecision::Reject(not_found()),
+                    Some(callbacks) => ws_decision(lua, callbacks, &upgrade).unwrap_or_else(|err| {
+                        eprintln!("ludi: unhandled error in Lua websocket upgrade: {err}");
+                        WsDecision::Reject(internal_error())
+                    }),
+                };
+                let _ = upgrade.respond.send(decision);
+            }
+            Msg::WsOpen { id, handle } => {
+                if let Some(callbacks) = &ws {
+                    let result: LuaResult<()> = callbacks
+                        .get::<LuaFunction>("open")
+                        .and_then(|open| open.call((id, handle)));
+                    if let Err(err) = result {
+                        eprintln!("ludi: unhandled error in Lua websocket open: {err}");
+                    }
+                }
+            }
+            Msg::WsEvent { id, event } => {
+                if let Some(callbacks) = &ws {
+                    if let Err(err) = ws_event(lua, callbacks, id, event) {
+                        eprintln!("ludi: unhandled error in Lua websocket event: {err}");
+                    }
+                }
             }
             Msg::Reload(changed) => {
                 if let Some(callback) = &on_reload {
@@ -114,10 +146,47 @@ fn response_from_lua(table: &LuaTable) -> LuaResult<Response> {
     Ok(Response { status, headers, body })
 }
 
+/// Asks Lua to decide a handshake: `{ accept = true }` upgrades, any
+/// other table is sent back as the HTTP response.
+fn ws_decision(
+    lua: &Lua,
+    callbacks: &LuaTable,
+    upgrade: &crate::types::WsUpgrade,
+) -> LuaResult<WsDecision> {
+    let decide = callbacks.get::<LuaFunction>("upgrade")?;
+    let decision =
+        decide.call::<LuaTable>((upgrade.id, request_to_lua(lua, &upgrade.request)?))?;
+
+    if decision.get::<Option<bool>>("accept")?.unwrap_or(false) {
+        Ok(WsDecision::Accept)
+    } else {
+        Ok(WsDecision::Reject(response_from_lua(&decision)?))
+    }
+}
+
+fn ws_event(lua: &Lua, callbacks: &LuaTable, id: u64, event: WsEvent) -> LuaResult<()> {
+    let notify = callbacks.get::<LuaFunction>("event")?;
+    match event {
+        WsEvent::Message { data, binary } => {
+            notify.call((id, "message", lua.create_string(&data)?, binary))
+        }
+        WsEvent::Close { code, reason } => notify.call((id, "close", code, reason)),
+        WsEvent::Error { message } => notify.call((id, "error", message)),
+    }
+}
+
 fn internal_error() -> Response {
     Response {
         status: 500,
         headers: vec![("Content-Type".into(), "text/plain".into())],
         body: b"Internal Server Error".to_vec(),
+    }
+}
+
+fn not_found() -> Response {
+    Response {
+        status: 404,
+        headers: vec![("Content-Type".into(), "application/json".into())],
+        body: br#"{"error":"Not Found"}"#.to_vec(),
     }
 }

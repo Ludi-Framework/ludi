@@ -77,6 +77,7 @@ export default defineConfig({
 						{ slug: 'guides/routing' },
 						{ slug: 'guides/middleware' },
 						{ slug: 'guides/route-groups' },
+						{ slug: 'guides/websockets' },
 						{ slug: 'guides/request' },
 						{ slug: 'guides/response' },
 						{ slug: 'guides/listening' },

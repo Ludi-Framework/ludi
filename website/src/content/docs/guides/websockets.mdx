@@ -1,0 +1,138 @@
+---
+title: WebSockets
+description: Built-in WebSocket routes, connections and events in Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+WebSockets are built into Ludi — no extra library, no separate server,
+same port as HTTP. The native core handles the protocol (handshake,
+frames, ping/pong); your handlers stay plain Lua.
+
+`app:ws(path)` registers a WebSocket route. The handler runs once per
+connection, right after the handshake completes:
+
+```lua
+app:ws("/chat/:room", function(conn, req)
+    print("joined " .. req.params.room)
+
+    conn:on("message", function(data, binary)
+        conn:send("echo: " .. data)
+    end)
+
+    conn:on("close", function(code, reason)
+        print("left " .. req.params.room)
+    end)
+end)
+```
+
+Path params, query string and headers arrive on `req` exactly as in an
+HTTP handler; `req.body` is always empty.
+
+## The connection
+
+| Method / field | Description |
+| --- | --- |
+| `conn:on(event, fn)` | Registers a listener; a connection can have several per event |
+| `conn:send(data, binary?)` | Sends a text frame — or binary when `binary` is `true` |
+| `conn:close(code?, reason?)` | Starts closing the connection; `code` defaults to `1000` |
+| `conn.closed` | `true` once the `"close"` event has fired |
+
+Events:
+
+- `"message"` `(data, binary)` — a frame arrived. `data` is a string;
+  `binary` tells text from binary frames.
+- `"close"` `(code, reason)` — the connection is gone. Always the last
+  event — no `"message"` ever follows it; `code` may be `nil` when the
+  peer sent none.
+- `"error"` `(err)` — a protocol error; a close follows. `err` is a table
+  with a `message` field.
+
+`conn:send` queues the frame on the native side and never blocks; it
+returns `false` once the connection is closed. Messages are capped at
+1 MB, like HTTP bodies.
+
+Handlers can hold on to connections — that is how a broadcast works:
+
+```lua
+local room = {}
+
+app:ws("/chat", function(conn)
+    table.insert(room, conn)
+
+    conn:on("message", function(data)
+        for _, peer in ipairs(room) do
+            peer:send(data)
+        end
+    end)
+
+    conn:on("close", function()
+        for i, peer in ipairs(room) do
+            if peer == conn then table.remove(room, i) break end
+        end
+    end)
+end)
+```
+
+## Middlewares and the handshake
+
+Middlewares — global, per-route and via [route groups](/guides/route-groups/)
+— run at handshake time with the usual `(req, res, next)` signature.
+Responding instead of calling `next()` rejects the handshake with that
+HTTP response:
+
+```lua
+local function auth(req, res, next)
+    if req.headers["authorization"] then
+        next()
+    else
+        res:status(401):json({ error = "Unauthorized" })
+    end
+end
+
+app:ws("/private", { auth }, function(conn)
+    conn:send("welcome")
+end)
+```
+
+The `req` handed to the handler is the same object the middlewares saw —
+the one carrying `req.params`, `req.query` and `req.headers` — so
+anything a middleware attaches travels with it:
+
+```lua
+local function auth(req, res, next)
+    req.user = lookup(req.headers["authorization"])
+    if req.user then next() else res:status(401):send("no") end
+end
+
+app:ws("/private", { auth }, function(conn, req)
+    conn:send("hello " .. req.user.name)
+end)
+```
+
+Groups work too, prefix and middlewares included:
+
+```lua
+app:group("/api", { auth }, function(api)
+    api:ws("/live", function(conn) ... end)   -- ws://host/api/live
+end)
+```
+
+<Aside type="note">
+	Requests to a ws path without the upgrade headers fall through to the
+	regular router — and get its `404`. A handshake for a path with no ws
+	route is rejected with `404` as well.
+</Aside>
+
+## Errors
+
+An error thrown inside the connection handler closes the connection with
+code `1011`; errors in listeners are logged (framed in dev mode, single
+line in production) and the connection stays open. Nothing is ever leaked
+to the client.
+
+## Hot reload
+
+With [hot reload](/guides/hot-reload/) on, open connections survive a
+reload: they keep running the handlers they were opened with until the
+peer disconnects. New connections get the new code.

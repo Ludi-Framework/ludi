@@ -7,12 +7,13 @@ package.loaded["spec.core_stub"] = stub
 
 package.preload["ludi_core"] = function()
     return {
-        start_server = function(port, dispatch, on_listen, on_reload)
+        start_server = function(port, dispatch, on_listen, on_reload, ws)
             stub.started = {
                 port = port,
                 dispatch = dispatch,
                 on_listen = on_listen,
-                on_reload = on_reload
+                on_reload = on_reload,
+                ws = ws
             }
             if on_listen then on_listen() end
         end
