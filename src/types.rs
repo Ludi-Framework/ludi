@@ -20,3 +20,10 @@ pub struct Job {
     pub request: Request,
     pub respond: oneshot::Sender<Response>,
 }
+
+/// Everything that can wake the Lua thread: an HTTP request to dispatch,
+/// or (dev mode) a batch of changed `*.lua` files to hot-reload.
+pub enum Msg {
+    Job(Job),
+    Reload(Vec<String>),
+}

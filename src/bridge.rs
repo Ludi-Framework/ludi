@@ -5,7 +5,8 @@ use mlua::prelude::*;
 use tokio::net::TcpListener;
 
 use crate::server;
-use crate::types::{Job, Request, Response};
+use crate::types::{Msg, Request, Response};
+use crate::watch;
 
 /// Blocks the calling (Lua) thread serving HTTP until the process exits.
 ///
@@ -16,9 +17,18 @@ use crate::types::{Job, Request, Response};
 ///
 /// `on_listen` runs on the Lua thread right after the port is bound, before
 /// any request is served. A failed bind raises a Lua error instead.
+///
+/// `on_reload` (dev mode) enables the file watcher: `*.lua` changes under
+/// the working directory arrive as `Msg::Reload` on the same channel, so
+/// the callback also runs on the Lua thread, never during a request.
 pub fn start_server(
     lua: &Lua,
-    (port, dispatch, on_listen): (u16, LuaFunction, Option<LuaFunction>),
+    (port, dispatch, on_listen, on_reload): (
+        u16,
+        LuaFunction,
+        Option<LuaFunction>,
+        Option<LuaFunction>,
+    ),
 ) -> LuaResult<()> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -29,23 +39,41 @@ pub fn start_server(
         .block_on(TcpListener::bind(("0.0.0.0", port)))
         .map_err(|err| LuaError::runtime(format!("ludi: failed to bind port {port}: {err}")))?;
 
-    let (jobs_tx, mut jobs_rx) = tokio::sync::mpsc::unbounded_channel::<Job>();
-    runtime.spawn(server::serve(listener, jobs_tx));
+    let (msgs_tx, mut msgs_rx) = tokio::sync::mpsc::unbounded_channel::<Msg>();
+
+    if on_reload.is_some() {
+        let root = std::env::current_dir().into_lua_err()?;
+        watch::spawn(root, msgs_tx.clone());
+    }
+
+    runtime.spawn(server::serve(listener, msgs_tx));
 
     if let Some(callback) = on_listen {
         callback.call::<()>(())?;
     }
 
-    while let Some(job) = jobs_rx.blocking_recv() {
-        let response = match dispatch.call::<LuaTable>(request_to_lua(lua, &job.request)?) {
-            Ok(table) => response_from_lua(&table)?,
-            Err(err) => {
-                eprintln!("ludi: unhandled error in Lua dispatch: {err}");
-                internal_error()
-            }
-        };
+    while let Some(msg) = msgs_rx.blocking_recv() {
+        match msg {
+            Msg::Job(job) => {
+                let response = match dispatch.call::<LuaTable>(request_to_lua(lua, &job.request)?)
+                {
+                    Ok(table) => response_from_lua(&table)?,
+                    Err(err) => {
+                        eprintln!("ludi: unhandled error in Lua dispatch: {err}");
+                        internal_error()
+                    }
+                };
 
-        let _ = job.respond.send(response);
+                let _ = job.respond.send(response);
+            }
+            Msg::Reload(changed) => {
+                if let Some(callback) = &on_reload {
+                    if let Err(err) = callback.call::<()>(changed) {
+                        eprintln!("ludi: unhandled error in Lua reload: {err}");
+                    }
+                }
+            }
+        }
     }
 
     Ok(())

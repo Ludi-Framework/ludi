@@ -1,6 +1,7 @@
 mod bridge;
 mod server;
 mod types;
+mod watch;
 
 use mlua::prelude::*;
 
