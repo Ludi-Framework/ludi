@@ -31,8 +31,36 @@ jobs:
       - name: Install rust-mlua build backend
         run: luarocks install luarocks-build-rust-mlua
 
+      # On a tag, stamp its version into the dev rockspec so the packed
+      # rock is named after the release instead of "dev-1".
+      - name: Select rockspec
+        run: |
+          ROCKSPEC=ludi-dev-1.rockspec
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}-1"
+            sed -e "s/^version = \"dev-1\"/version = \"$VERSION\"/" \
+                -e "s|^\(   url = .*\)\$|\1,\n   tag = \"$GITHUB_REF_NAME\"|" \
+                ludi-dev-1.rockspec > "ludi-$VERSION.rockspec"
+            ROCKSPEC="ludi-$VERSION.rockspec"
+          fi
+          echo "ROCKSPEC=$ROCKSPEC" >> "$GITHUB_ENV"
+
       - name: Build binary rock
-        run: luarocks make --pack-binary-rock ludi-dev-1.rockspec
+        run: luarocks make --pack-binary-rock "$ROCKSPEC"
+
+      # Rocks for different Lua versions share a filename (the .rock name
+      # only encodes the platform), so they would overwrite each other in
+      # the GitHub release. Suffix the variant; rename it back to the
+      # canonical name before feeding it to luarocks install.
+      - name: Add the Lua variant to the rock filename
+        run: |
+          case "${{ matrix.lua }}" in
+            luajit*) SUFFIX="${{ matrix.lua }}" ;;
+            *) SUFFIX="lua${{ matrix.lua }}" ;;
+          esac
+          for rock in *.rock; do
+            mv "$rock" "${rock%.rock}-$SUFFIX.rock"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -85,5 +113,7 @@ jobs:
           echo "ROCKSPEC=ludi-$VERSION.rockspec" >> "$GITHUB_ENV"
           cat "ludi-$VERSION.rockspec"
 
+      # --force makes re-runs idempotent: re-uploading the same version
+      # overwrites it instead of failing.
       - name: Upload to luarocks.org
-        run: luarocks upload "$ROCKSPEC" --api-key "${{ secrets.LUAROCKS_API_KEY }}"
+        run: luarocks upload "$ROCKSPEC" --force --api-key "${{ secrets.LUAROCKS_API_KEY }}"
