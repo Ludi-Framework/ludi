@@ -1,0 +1,61 @@
+name: Auto release
+
+# Every push to main that touches the Lua package or the Rust core becomes
+# a release: the next vX.Y.Z tag is created and the release workflow is
+# dispatched for it (build binary rocks, GitHub release, luarocks.org
+# upload). The bump follows the Conventional Commit messages since the
+# last tag — `feat!:`/BREAKING CHANGE -> major, `feat:` -> minor,
+# anything else -> patch. A manually pushed tag always wins: tag HEAD
+# yourself (e.g. v1.0.0) and this workflow steps aside. Add [skip release]
+# to the merge commit message to opt a push out.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ludi/**"
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+jobs:
+  tag:
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags are needed to compute the next version
+
+      - name: Tag the next version and dispatch the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "$(git tag --points-at HEAD --list 'v*')" ]; then
+            echo "HEAD already tagged manually; nothing to do"
+            exit 0
+          fi
+
+          LATEST="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+          IFS=. read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
+
+          LOG="$(git log "$LATEST"..HEAD --format='%s%n%b')"
+          if echo "$LOG" | grep -qE '^[a-z]+(\([^)]+\))?!:|^BREAKING CHANGE:'; then
+            NEXT="v$((MAJOR + 1)).0.0"
+          elif echo "$LOG" | grep -qE '^feat(\([^)]+\))?:'; then
+            NEXT="v$MAJOR.$((MINOR + 1)).0"
+          else
+            NEXT="v$MAJOR.$MINOR.$((PATCH + 1))"
+          fi
+          echo "bumping $LATEST -> $NEXT"
+
+          git tag "$NEXT"
+          git push origin "$NEXT"
+
+          # A tag pushed with GITHUB_TOKEN does not fire on:push workflows
+          # (recursion guard); workflow_dispatch is the documented exception,
+          # so the release workflow is dispatched explicitly on the new tag.
+          gh workflow run release.yml --ref "$NEXT"
