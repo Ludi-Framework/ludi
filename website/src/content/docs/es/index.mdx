@@ -3,39 +3,34 @@ title: Ludi
 description: Un framework web estilo Express para Lua, impulsado por Rust.
 template: splash
 hero:
-  tagline: Un framework web estilo Express para Lua, impulsado por Rust.
+  tagline: Un framework web estilo Express para Lua, impulsado por Rust. Escribe
+    rutas, middlewares y handlers como ya sabes, mientras el núcleo nativo se
+    encarga del HTTP de alto rendimiento.
   actions:
     - text: Empezar
       link: /es/getting-started/installation/
-      icon: right-arrow
     - text: Ver en GitHub
       link: https://github.com/Ludi-Framework/ludi
-      icon: external
       variant: minimal
+ludi:
+  badge: Ergonomía de Lua • HTTP potenciado por Rust
+  chips:
+    - title: API Lua-first
+      detail: handlers simples
+    - title: Núcleo nativo
+      detail: hyper + tokio
+    - title: Cero runtime
+      detail: sin nginx
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-```lua
-local ludi = require("ludi")
+## Hecho para desarrolladores Lua que quieren ergonomía web moderna.
 
-local app = ludi.new()
+Ludi mantiene la capa de aplicación pequeña y expresiva mientras Rust se
+encarga de la capa de transporte, parsing, límites y sockets.
 
-app:get("/users/:id", function(req, res)
-    res:json({ id = req.params.id })
-end)
-
-app:listen(3000, function()
-    print("Listening on http://localhost:3000")
-end)
-```
-
-```bash
-luarocks install ludi
-lua app.lua
-```
-
-<CardGrid stagger>
+<CardGrid>
 	<Card title="API estilo Express" icon="rocket">
 		Rutas, middlewares y handlers son Lua puro, con la API que ya conoces de
 		Express y Fastify.

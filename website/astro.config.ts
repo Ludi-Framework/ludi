@@ -32,6 +32,28 @@ export default defineConfig({
 				SocialIcons: './src/components/SocialIcons.astro',
 				Head: './src/components/Head.astro',
 				Footer: './src/components/Footer.astro',
+				Hero: './src/components/Hero.astro',
+			},
+			expressiveCode: {
+				// Code windows stay dark in both site themes, per the design.
+				themes: ['one-dark-pro'],
+				styleOverrides: {
+					borderRadius: '1.25rem',
+					borderColor: '#263252',
+					borderWidth: '1px',
+					codeBackground: '#0d1224',
+					frames: {
+						editorBackground: '#0d1224',
+						editorTabBarBackground: '#111a33',
+						editorActiveTabBackground: '#0d1224',
+						editorActiveTabForeground: '#d8e0ff',
+						terminalBackground: '#0d1224',
+						terminalTitlebarBackground: '#111a33',
+						terminalTitlebarForeground: '#7482a9',
+						terminalTitlebarBorderBottomColor: '#263252',
+						shadowColor: 'rgba(15, 23, 42, 0.18)',
+					},
+				},
 			},
 			defaultLocale: 'root',
 			locales: {
