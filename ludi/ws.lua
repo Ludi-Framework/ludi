@@ -20,9 +20,16 @@ local errfmt = require("ludi.errfmt")
 local watch_env = os.getenv("LUDI_WATCH")
 local DEV = watch_env ~= nil and watch_env ~= "" and watch_env ~= "0"
 
+--- A WebSocket protocol error, delivered to "error" listeners. Carries
+--- only `message` today; a table so more fields can appear without
+--- breaking listeners.
+---@class ludi.WsError
+---@field message string
+
 --- One open WebSocket connection, handed to the route handler.
 ---@class ludi.WsConn
 ---@field handle ludi.WsNativeHandle
+---@field closed boolean true once the "close" event has fired
 ---@field listeners table<string, function[]>
 local Conn = {}
 Conn.__index = Conn
@@ -32,6 +39,7 @@ local EVENTS = {message = true, close = true, ["error"] = true}
 function Conn.new(handle)
     return setmetatable({
         handle = handle,
+        closed = false,
         listeners = {message = {}, close = {}, ["error"] = {}}
     }, Conn)
 end
@@ -39,7 +47,7 @@ end
 --- Registers a listener. Events:
 ---   "message" (data: string, binary: boolean) — a frame arrived
 ---   "close"   (code: integer?, reason: string) — connection is gone; last event
----   "error"   (message: string) — protocol error; a close follows
+---   "error"   (err: ludi.WsError) — protocol error; a close follows
 ---@param event "message"|"close"|"error"
 ---@param fn function
 function Conn:on(event, fn)
@@ -129,6 +137,7 @@ function Ws.event(id, kind, a, b)
         local conn = open[id]
         open[id] = nil
         if conn then
+            conn.closed = true
             for _, fn in ipairs(conn.listeners.close) do
                 protected(function() fn(a, b) end, "WS close listener failed")
             end
@@ -144,8 +153,9 @@ function Ws.event(id, kind, a, b)
             protected(function() fn(a, b) end, "WS message listener failed")
         end
     elseif kind == "error" then
+        local err = {message = a}
         for _, fn in ipairs(conn.listeners["error"]) do
-            protected(function() fn(a) end, "WS error listener failed")
+            protected(function() fn(err) end, "WS error listener failed")
         end
     end
 end

@@ -171,6 +171,45 @@ describe("websocket", function()
         assert.are.equal(0, messages)
     end)
 
+    it("delivers protocol errors as a table", function()
+        local app = ludi.new()
+        local got
+        app:ws("/chat", function(conn)
+            conn:on("error", function(err) got = err end)
+        end)
+
+        local _, id = connect(app, "/chat")
+        ws.event(id, "error", "Space in headers")
+
+        assert.are.same({message = "Space in headers"}, got)
+    end)
+
+    it("exposes closed as a queryable property", function()
+        local app = ludi.new()
+        local conns = {}
+        app:ws("/chat", function(conn) table.insert(conns, conn) end)
+
+        local _, id = connect(app, "/chat")
+
+        assert.is_false(conns[1].closed)
+        ws.event(id, "close", 1000, "")
+        assert.is_true(conns[1].closed)
+    end)
+
+    it("hands the handler the same req the middlewares saw", function()
+        local app = ludi.new()
+        local got
+        local function auth(req, _, next)
+            req.user = {name = "ana"}
+            next()
+        end
+        app:ws("/private", {auth}, function(_, req) got = req.user end)
+
+        connect(app, "/private")
+
+        assert.are.same({name = "ana"}, got)
+    end)
+
     it("closes with 1011 when the handler errors", function()
         local app = ludi.new()
         app:ws("/boom", function() error("kaboom") end)
