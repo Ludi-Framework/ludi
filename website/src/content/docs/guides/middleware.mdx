@@ -44,9 +44,12 @@ end)
 ## Execution order
 
 <Aside type="tip">
-	Global middlewares → route middlewares → handler, always in registration
-	order.
+	Global middlewares → group middlewares → route middlewares → handler,
+	always in registration order.
 </Aside>
+
+Middlewares can also be attached to a whole [route group](/guides/route-groups/)
+at once.
 
 A middleware that responds without calling `next()` short-circuits the chain
 — the handler never runs. That is how the `auth` example above rejects

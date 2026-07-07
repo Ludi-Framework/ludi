@@ -44,9 +44,12 @@ end)
 ## Orden de ejecución
 
 <Aside type="tip">
-	Middlewares globales → middlewares de la ruta → handler, siempre en orden de
-	registro.
+	Middlewares globales → middlewares del grupo → middlewares de la ruta →
+	handler, siempre en orden de registro.
 </Aside>
+
+Los middlewares también pueden adjuntarse a un
+[grupo de rutas](/es/guides/route-groups/) completo de una vez.
 
 Un middleware que responde sin llamar a `next()` corta la cadena — el handler
 nunca se ejecuta. Así es como el ejemplo `auth` de arriba rechaza las
