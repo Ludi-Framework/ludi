@@ -67,9 +67,34 @@ jobs:
           name: rock-${{ matrix.os }}-lua${{ matrix.lua }}
           path: "*.rock"
 
+  # The `ludi` CLI binary (ludi build), one per OS/arch, vendored Lua 5.5.
+  cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build the ludi CLI
+        run: cargo build --release --features cli --bin ludi
+
+      - name: Name the binary after the platform
+        run: |
+          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+          cp target/release/ludi "ludi-$PLATFORM"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.os }}
+          path: "ludi-*"
+
   release:
     if: startsWith(github.ref, 'refs/tags/')
-    needs: build
+    needs: [build, cli]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -80,7 +105,9 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: "*.rock"
+          files: |
+            *.rock
+            ludi-*
 
   luarocks:
     if: startsWith(github.ref, 'refs/tags/')

@@ -14,6 +14,10 @@ jobs:
             feature: lua54
           - lua: "5.5"
             feature: lua55
+          # The CLI vendors its own Lua; the gh-actions-lua install is
+          # simply unused in this cell.
+          - lua: "5.5"
+            feature: cli
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
