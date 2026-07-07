@@ -1,6 +1,6 @@
 ---
 title: Rotas
-description: Métodos HTTP, parâmetros de path e comportamento de erros no Ludi.
+description: Métodos HTTP, parâmetros de path, grupos de rotas e comportamento de erros no Ludi.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
@@ -18,6 +18,9 @@ app:post("/items", function(req, res)
 end)
 ```
 
+Handlers recebem um [Request](/pt-br/guides/request/) e um
+[Response](/pt-br/guides/response/).
+
 ## Parâmetros de path
 
 Segmentos de path prefixados com `:` são capturados como params e expostos em
@@ -30,6 +33,59 @@ end)
 ```
 
 Params são sempre strings — `/users/42` resulta em `req.params.id == "42"`.
+
+## Grupos de rotas
+
+`app:group(prefix)` reúne rotas sob um prefixo compartilhado — como um
+Router do Express montado em um caminho, ou um plugin do Fastify registrado
+com `prefix`. A forma usual é um callback que recebe o grupo; grupos
+aninham, e o caminho `"/"` mapeia para o próprio prefixo:
+
+```lua
+app:group("/api", function(api)
+    api:get("/", handler)                      -- GET /api
+    api:get("/users/:id", handler)             -- GET /api/users/42
+
+    api:group("/v2", function(v2)              -- grupos aninham
+        v2:get("/users", handler)              -- GET /api/v2/users
+    end)
+end)
+```
+
+O grupo também é retornado, então o callback é opcional:
+
+```lua
+local api = app:group("/api")
+
+api:get("/ping", function(req, res)            -- GET /api/ping
+    res:send("pong")
+end)
+```
+
+### Middlewares de grupo
+
+Uma lista de [middlewares](/pt-br/guides/middleware/) entre o prefixo e o
+callback roda antes de toda rota do grupo; `group:use` adiciona um para as
+rotas registradas depois da chamada:
+
+```lua
+app:group("/admin", { auth }, function(admin)
+    admin:get("/stats", handler)               -- auth roda primeiro
+end)
+
+local reports = app:group("/reports")
+reports:use(auth)
+reports:get("/daily", handler)
+```
+
+Ordem de execução: middlewares globais → middlewares do grupo (do mais
+externo para o mais interno) → middlewares da rota → handler.
+
+<Aside type="note">
+	Uma função sozinha depois do prefixo é sempre o callback. Para passar um
+	único middleware sem callback, envolva-o em uma tabela —
+	`app:group("/admin", { auth })` — ou use `group:use`.
+</Aside>
 
 ## Rotas não encontradas
 

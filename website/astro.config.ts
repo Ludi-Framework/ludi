@@ -3,6 +3,13 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({
+	// Route groups used to be a standalone guide; the content now lives in
+	// the routing guide.
+	redirects: {
+		'/guides/route-groups': '/guides/routing/#route-groups',
+		'/pt-br/guides/route-groups': '/pt-br/guides/routing/#grupos-de-rotas',
+		'/es/guides/route-groups': '/es/guides/routing/#grupos-de-rutas',
+	},
 	vite: {
 		plugins: [tailwindcss()],
 	},
@@ -76,7 +83,6 @@ export default defineConfig({
 					items: [
 						{ slug: 'guides/routing' },
 						{ slug: 'guides/middleware' },
-						{ slug: 'guides/route-groups' },
 						{ slug: 'guides/request' },
 						{ slug: 'guides/response' },
 						{ slug: 'guides/listening' },
