@@ -159,11 +159,12 @@ end)
 
 The connection object:
 
-| Method | Description |
+| Method / field | Description |
 | --- | --- |
-| `conn:on(event, fn)` | Listeners for `"message"` `(data, binary)`, `"close"` `(code, reason)` and `"error"` `(message)` |
+| `conn:on(event, fn)` | Listeners for `"message"` `(data, binary)`, `"close"` `(code, reason)` and `"error"` `(err)` — `err.message` holds the text |
 | `conn:send(data, binary?)` | Sends a text frame (or binary with `true`); returns `false` once closed |
 | `conn:close(code?, reason?)` | Starts closing; `code` defaults to `1000` |
+| `conn.closed` | `true` once the `"close"` event has fired — always the last event a connection emits |
 
 Middlewares — global, per-route and via groups — run at handshake time
 with the usual `(req, res, next)` signature. Responding instead of
@@ -172,6 +173,20 @@ calling `next()` rejects the handshake with that HTTP response:
 ```lua
 app:ws("/private", { auth }, function(conn) ... end)
 -- without the Authorization header the client gets the 401, no upgrade
+```
+
+The `req` the handler receives is the same object the middlewares saw, so
+anything they attach travels with it:
+
+```lua
+local function auth(req, res, next)
+    req.user = lookup(req.headers["authorization"])
+    if req.user then next() else res:status(401):send("no") end
+end
+
+app:ws("/private", { auth }, function(conn, req)
+    conn:send("hello " .. req.user.name)
+end)
 ```
 
 Requests to a ws path without the upgrade headers fall through to the

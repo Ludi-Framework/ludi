@@ -31,19 +31,22 @@ HTTP handler; `req.body` is always empty.
 
 ## The connection
 
-| Method | Description |
+| Method / field | Description |
 | --- | --- |
 | `conn:on(event, fn)` | Registers a listener; a connection can have several per event |
 | `conn:send(data, binary?)` | Sends a text frame — or binary when `binary` is `true` |
 | `conn:close(code?, reason?)` | Starts closing the connection; `code` defaults to `1000` |
+| `conn.closed` | `true` once the `"close"` event has fired |
 
 Events:
 
 - `"message"` `(data, binary)` — a frame arrived. `data` is a string;
   `binary` tells text from binary frames.
 - `"close"` `(code, reason)` — the connection is gone. Always the last
-  event; `code` may be `nil` when the peer sent none.
-- `"error"` `(message)` — a protocol error; a close follows.
+  event — no `"message"` ever follows it; `code` may be `nil` when the
+  peer sent none.
+- `"error"` `(err)` — a protocol error; a close follows. `err` is a table
+  with a `message` field.
 
 `conn:send` queues the frame on the native side and never blocks; it
 returns `false` once the connection is closed. Messages are capped at
@@ -89,6 +92,21 @@ end
 
 app:ws("/private", { auth }, function(conn)
     conn:send("welcome")
+end)
+```
+
+The `req` handed to the handler is the same object the middlewares saw —
+the one carrying `req.params`, `req.query` and `req.headers` — so
+anything a middleware attaches travels with it:
+
+```lua
+local function auth(req, res, next)
+    req.user = lookup(req.headers["authorization"])
+    if req.user then next() else res:status(401):send("no") end
+end
+
+app:ws("/private", { auth }, function(conn, req)
+    conn:send("hello " .. req.user.name)
 end)
 ```
 

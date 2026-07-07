@@ -31,19 +31,22 @@ como em um handler HTTP; `req.body` é sempre vazio.
 
 ## A conexão
 
-| Método | Descrição |
+| Método / campo | Descrição |
 | --- | --- |
 | `conn:on(event, fn)` | Registra um listener; uma conexão pode ter vários por evento |
 | `conn:send(data, binary?)` | Envia um frame de texto — ou binário quando `binary` é `true` |
 | `conn:close(code?, reason?)` | Inicia o fechamento; `code` padrão é `1000` |
+| `conn.closed` | `true` depois que o evento `"close"` disparou |
 
 Eventos:
 
 - `"message"` `(data, binary)` — chegou um frame. `data` é uma string;
   `binary` distingue frames de texto e binários.
-- `"close"` `(code, reason)` — a conexão acabou. Sempre o último evento;
-  `code` pode ser `nil` quando o peer não enviou nenhum.
-- `"error"` `(message)` — erro de protocolo; um close vem em seguida.
+- `"close"` `(code, reason)` — a conexão acabou. Sempre o último evento —
+  nenhum `"message"` chega depois dele; `code` pode ser `nil` quando o
+  peer não enviou nenhum.
+- `"error"` `(err)` — erro de protocolo; um close vem em seguida. `err` é
+  uma tabela com o campo `message`.
 
 `conn:send` enfileira o frame no lado nativo e nunca bloqueia; retorna
 `false` quando a conexão já fechou. Mensagens têm teto de 1 MB, como os
@@ -89,6 +92,21 @@ end
 
 app:ws("/private", { auth }, function(conn)
     conn:send("welcome")
+end)
+```
+
+O `req` que o handler recebe é o mesmo objeto que os middlewares viram —
+o que carrega `req.params`, `req.query` e `req.headers` — então tudo que
+um middleware anexar viaja junto:
+
+```lua
+local function auth(req, res, next)
+    req.user = lookup(req.headers["authorization"])
+    if req.user then next() else res:status(401):send("no") end
+end
+
+app:ws("/private", { auth }, function(conn, req)
+    conn:send("hello " .. req.user.name)
 end)
 ```
 
