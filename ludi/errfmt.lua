@@ -122,19 +122,35 @@ function errfmt.frame(loc)
     return table.concat(out)
 end
 
---- Full multi-line report for a failed reload, ready for stderr.
----@param err any the error value caught during the reload
----@param kind "syntax"|"runtime"
+local KINDS = {
+    syntax = {
+        title = "Syntax error",
+        note = "keeping previous version",
+        hint = "Fix the file and save to reload.",
+    },
+    runtime = {
+        title = "Reload failed",
+        note = "keeping previous version",
+        hint = "Fix the file and save to reload.",
+    },
+    handler = {title = "Handler error"},
+}
+
+--- Full multi-line report for a caught error, ready for stderr.
+---@param err any the error value caught
+---@param kind "syntax"|"runtime"|"handler"
+---@param note? string subtitle after the title (defaults per kind)
 ---@return string
-function errfmt.render(err, kind)
+function errfmt.render(err, kind, note)
+    local spec = KINDS[kind]
     local msg = tostring(err)
     local loc = errfmt.parse(msg)
     local out = {"\n"}
 
-    out[#out + 1] = ("  %s %s %s\n\n"):format(
-        paint(RED, "✗"),
-        paint(BOLD, kind == "syntax" and "Syntax error" or "Reload failed"),
-        paint(DIM, "— keeping previous version"))
+    note = note or spec.note
+    out[#out + 1] = ("  %s %s%s\n\n"):format(
+        paint(RED, "✗"), paint(BOLD, spec.title),
+        note and (" " .. paint(DIM, "— " .. note)) or "")
 
     if loc then
         out[#out + 1] = ("  %s %s\n"):format(
@@ -147,8 +163,10 @@ function errfmt.render(err, kind)
         out[#out + 1] = "  " .. msg:gsub("\n", "\n  ") .. "\n"
     end
 
-    out[#out + 1] = "\n  " ..
-        paint(DIM, "Fix the file and save to reload.") .. "\n\n"
+    if spec.hint then
+        out[#out + 1] = "\n  " .. paint(DIM, spec.hint) .. "\n"
+    end
+    out[#out + 1] = "\n"
     return table.concat(out)
 end
 

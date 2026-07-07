@@ -93,6 +93,19 @@ describe("errfmt", function()
             assert.is_nil(report:find("▶", 1, true))
         end)
 
+        it("renders handler errors with a custom note and no reload hint", function()
+            source = write_source("local m = {}\nm.nope()\n")
+            local report = errfmt.render(
+                source .. ":2: attempt to call a nil value (field 'nope')",
+                "handler", "GET /ping responded 500")
+
+            assert.truthy(report:find("Handler error", 1, true))
+            assert.truthy(report:find("GET /ping responded 500", 1, true))
+            assert.truthy(report:find("▶ 2 │ m.nope()", 1, true))
+            assert.is_nil(report:find("Fix the file", 1, true))
+            assert.is_nil(report:find("keeping previous version", 1, true))
+        end)
+
         it("prints unparseable errors verbatim", function()
             local report = errfmt.render("something exploded", "runtime")
             assert.truthy(report:find("something exploded", 1, true))
