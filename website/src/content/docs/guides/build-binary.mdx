@@ -1,0 +1,51 @@
+---
+title: Building a binary
+description: Shipping the application as a single self-contained executable.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Like Go, a Ludi application can ship as one self-contained executable —
+no Lua, no LuaRocks on the target machine:
+
+```bash
+ludi build                    # entry: app.lua, server.lua or main.lua
+ludi build server.lua -o api  # or explicit entry and output name
+./api
+```
+
+The build is instant: no compiler runs. `ludi build` packs every `*.lua`
+file under the current directory into a copy of the `ludi` runtime — a
+static Lua 5.5, the framework and your code in a single file. Hidden
+directories, `target/`, `lua_modules/` and `node_modules/` are excluded,
+the same rules the hot-reload watcher uses.
+
+At run time, `require` resolves from inside the bundle; the filesystem is
+never consulted for modules. Deploy is `scp` and run.
+
+## Getting the CLI
+
+Each GitHub release ships the CLI per platform — download, `chmod +x`,
+done:
+
+```bash
+curl -LO https://github.com/Ludi-Framework/ludi/releases/latest/download/ludi-linux-x86_64
+chmod +x ludi-linux-x86_64 && sudo mv ludi-linux-x86_64 /usr/local/bin/ludi
+```
+
+macOS (Apple Silicon): use `ludi-darwin-arm64`. Or build from source with
+`make cli` in the repository (requires Rust).
+
+## Semantics
+
+- A bundled binary always runs **Lua 5.5**, whatever interpreter you
+  develop with.
+- Command-line arguments reach the app as usual (`arg[1]`, `arg[2]`, …).
+- `LUDI_WATCH` is ignored inside a bundle — there is nothing on disk to
+  watch. Hot reload is for development; the binary is for deploy.
+
+<Aside type="note">
+	Only `*.lua` files under the project directory are packed. Pure-Lua
+	dependencies must live inside the project to be bundled; native (C)
+	rocks are not supported inside a binary.
+</Aside>
