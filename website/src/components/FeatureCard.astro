@@ -1,0 +1,23 @@
+---
+/**
+ * Feature card with a custom icon, for logos Starlight's <Card> icon
+ * set does not include (e.g. the Rust logo on the homepage).
+ *
+ * Renders the same markup as Starlight's Card (article.card > p.title
+ * > span.icon), so the shared .card styles in global.css apply to
+ * both components equally.
+ */
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<article class="card sl-flex">
+	<p class="title sl-flex">
+		<span class="icon" aria-hidden="true"><slot name="icon" /></span>
+		<span>{title}</span>
+	</p>
+	<div class="body"><slot /></div>
+</article>

@@ -2,6 +2,10 @@
 title: Ludi
 description: Un framework web estilo Express para Lua, impulsado por Rust.
 template: splash
+# The default pattern would render "Ludi | Ludi" on the homepage.
+head:
+  - tag: title
+    content: Ludi
 hero:
   tagline: Un framework web estilo Express para Lua, impulsado por Rust. Escribe
     rutas, middlewares y handlers como ya sabes, mientras el núcleo nativo se
@@ -24,6 +28,8 @@ ludi:
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import RustLogo from '../../../assets/rust.svg';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 ## Hecho para desarrolladores Lua que quieren ergonomía web moderna.
 
@@ -35,10 +41,11 @@ encarga de la capa de transporte, parsing, límites y sockets.
 		Rutas, middlewares y handlers son Lua puro, con la API que ya conoces de
 		Express y Fastify.
 	</Card>
-	<Card title="Núcleo en Rust" icon="setting">
+	<FeatureCard title="Núcleo en Rust">
+		<RustLogo slot="icon" width={24} height={24} />
 		Un módulo nativo construido sobre hyper + tokio hace el trabajo pesado de
 		HTTP: parsing rápido, límites e I/O de sockets.
-	</Card>
+	</FeatureCard>
 	<Card title="Sin runtime extra" icon="approve-check">
 		Sin OpenResty, sin nginx, sin runtime separado — solo `require("ludi")` y
 		ejecuta tu app con cualquier intérprete de Lua.
