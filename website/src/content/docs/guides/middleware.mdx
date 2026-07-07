@@ -41,15 +41,34 @@ app:get("/very-private", { auth, audit }, function(req, res)
 end)
 ```
 
+## Group middlewares
+
+A [route group](/guides/routing/#route-groups) takes a middleware list
+between the prefix and the callback; it runs before every route in the
+group. `group:use` adds one for the routes registered after the call:
+
+```lua
+app:group("/admin", { auth }, function(admin)
+    admin:get("/stats", handler)    -- auth runs first
+end)
+
+local reports = app:group("/reports")
+reports:use(auth)
+reports:get("/daily", handler)
+```
+
+<Aside type="note">
+	A lone function after the prefix is always the group's body callback. To
+	pass a single middleware without a body, wrap it in a table — `{ auth }`
+	— or use `group:use`.
+</Aside>
+
 ## Execution order
 
 <Aside type="tip">
-	Global middlewares → group middlewares → route middlewares → handler,
-	always in registration order.
+	Global middlewares → group middlewares (outermost first) → route
+	middlewares → handler, always in registration order.
 </Aside>
-
-Middlewares can also be attached to a whole
-[route group](/guides/routing/#route-groups) at once.
 
 A middleware that responds without calling `next()` short-circuits the chain
 — the handler never runs. That is how the `auth` example above rejects

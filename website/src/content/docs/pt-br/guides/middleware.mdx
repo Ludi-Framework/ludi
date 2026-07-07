@@ -41,15 +41,35 @@ app:get("/very-private", { auth, audit }, function(req, res)
 end)
 ```
 
+## Middlewares de grupo
+
+Um [grupo de rotas](/pt-br/guides/routing/#grupos-de-rotas) aceita uma
+lista de middlewares entre o prefixo e o callback; ela roda antes de toda
+rota do grupo. `group:use` adiciona um para as rotas registradas depois da
+chamada:
+
+```lua
+app:group("/admin", { auth }, function(admin)
+    admin:get("/stats", handler)    -- auth roda primeiro
+end)
+
+local reports = app:group("/reports")
+reports:use(auth)
+reports:get("/daily", handler)
+```
+
+<Aside type="note">
+	Uma função sozinha depois do prefixo é sempre o callback do grupo. Para
+	passar um único middleware sem callback, envolva-o em uma tabela —
+	`{ auth }` — ou use `group:use`.
+</Aside>
+
 ## Ordem de execução
 
 <Aside type="tip">
-	Middlewares globais → middlewares do grupo → middlewares da rota →
-	handler, sempre na ordem de registro.
+	Middlewares globais → middlewares do grupo (do mais externo primeiro) →
+	middlewares da rota → handler, sempre na ordem de registro.
 </Aside>
-
-Middlewares também podem ser anexados a um
-[grupo de rotas](/pt-br/guides/routing/#grupos-de-rotas) inteiro de uma vez.
 
 Um middleware que responde sem chamar `next()` corta a cadeia — o handler
 nunca roda. É assim que o exemplo `auth` acima rejeita requisições não
