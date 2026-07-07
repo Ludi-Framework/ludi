@@ -24,13 +24,28 @@ Edit a route, save, refresh: the change is live.
    intercepted and the new app replaces the old one in place.
 
 The reload runs on the Lua thread, between requests — never in the middle
-of one. A reload that fails (syntax error, error at load time) is logged
-to stderr and the previous version keeps serving until the next change:
+of one. A reload that fails (syntax error, error at load time) prints a
+framed source excerpt on stderr — offending line highlighted, carets under
+the token the parser choked on — and the previous version keeps serving
+until the next change:
 
 ```
-ludi: reloading (app.lua changed)
-ludi: reload failed, keeping previous version: app.lua:12: syntax error near ')'
+  reloading (app.lua changed)
+
+  ✗ Syntax error — keeping previous version
+
+  app.lua:12 ')' expected (to close '(' at line 10) near 'end'
+
+    10 │ app:get("/users", function(_, res)
+    11 │     res:json({ users = users })
+  ▶ 12 │ end
+       │ ^^^
+
+  Fix the file and save to reload.
 ```
+
+A successful reload prints `✓ reloaded`. Colors are disabled when
+`NO_COLOR` is set or the terminal is dumb.
 
 ## Semantics
 
