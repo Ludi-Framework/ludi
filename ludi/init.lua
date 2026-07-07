@@ -1,4 +1,5 @@
 local core = require("ludi_core")
+local reload = require("ludi.reload")
 local Router = require("ludi.router")
 local Request = require("ludi.request")
 local Response = require("ludi.response")
@@ -161,11 +162,41 @@ end
 --- The callback runs once, right after the port is bound and before any
 --- request is served — the place for the application's own startup log.
 --- Raises an error when the port cannot be bound.
+---
+--- With `LUDI_WATCH=1` in the environment, `*.lua` files under the working
+--- directory are watched and the application is hot-reloaded on change: the
+--- entrypoint is re-executed and its `app:listen()` call swaps the app in
+--- place, without rebinding the port (see ludi/reload.lua).
 ---@param port? integer defaults to 3000
 ---@param callback? fun()
 function Ludi:listen(port, callback)
+    -- During a hot reload the re-executed entrypoint lands here: hand the
+    -- new app to the interceptor instead of starting a second server.
+    if Ludi._capture_listen then
+        Ludi._capture_listen(self)
+        return
+    end
+
+    local current = self
+    local on_reload
+
+    local watch = os.getenv("LUDI_WATCH")
+    if watch and watch ~= "" and watch ~= "0" then
+        local entrypoint = arg and arg[0]
+        if entrypoint then
+            on_reload = reload.handler(
+                entrypoint,
+                function(interceptor) Ludi._capture_listen = interceptor end,
+                function(app) current = app end)
+        else
+            io.stderr:write("ludi: LUDI_WATCH is set but the entrypoint is " ..
+                                "unknown (no arg[0]); hot reload disabled\n")
+        end
+    end
+
     core.start_server(port or 3000,
-                      function(raw) return self:_dispatch(raw) end, callback)
+                      function(raw) return current:_dispatch(raw) end,
+                      callback, on_reload)
 end
 
 return Ludi
