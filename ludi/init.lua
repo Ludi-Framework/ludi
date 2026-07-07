@@ -2,6 +2,7 @@ local core = require("ludi_core")
 local errfmt = require("ludi.errfmt")
 local reload = require("ludi.reload")
 local Router = require("ludi.router")
+local Group = require("ludi.group")
 local Request = require("ludi.request")
 local Response = require("ludi.response")
 local run_chain = require("ludi.middleware")
@@ -61,6 +62,30 @@ end
 function Ludi:use(middleware)
     assert(type(middleware) == "function", "Middleware must be a function")
     table.insert(self.middlewares, middleware)
+end
+
+--- Creates a route group: a shared path prefix, optionally with
+--- middlewares that run before every route in the group (after the
+--- global ones). Routes can be registered in a body callback or on the
+--- returned group; groups nest via `group:group()`.
+---
+---     app:group("/api", function(api)
+---         api:get("/users", handler)          -- GET /api/users
+---     end)
+---
+---     local admin = app:group("/admin", { auth })
+---     admin:get("/stats", handler)            -- auth runs first
+---
+--- A lone function argument is the body; a single middleware without a
+--- body must be wrapped in a table (or added with `group:use`).
+---@param prefix string path prefix, must start with "/"
+---@param middlewares? ludi.Middleware|ludi.Middleware[]
+---@param body? ludi.GroupBody
+---@return ludi.Group
+---@overload fun(self: Ludi, prefix: string, body: ludi.GroupBody): ludi.Group
+---@overload fun(self: Ludi, prefix: string): ludi.Group
+function Ludi:group(prefix, middlewares, body)
+    return Group.new(self, "", {}, prefix, middlewares, body)
 end
 
 --- Registers a route. Prefer the verb helpers (get, post, ...).

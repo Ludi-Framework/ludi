@@ -5,6 +5,7 @@
 pub const LUA_MODULES: &[(&str, &str)] = &[
     ("ludi", include_str!("../ludi/init.lua")),
     ("ludi.router", include_str!("../ludi/router.lua")),
+    ("ludi.group", include_str!("../ludi/group.lua")),
     ("ludi.request", include_str!("../ludi/request.lua")),
     ("ludi.response", include_str!("../ludi/response.lua")),
     ("ludi.middleware", include_str!("../ludi/middleware.lua")),

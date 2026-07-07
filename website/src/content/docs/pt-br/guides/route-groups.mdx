@@ -1,0 +1,105 @@
+---
+title: Grupos de rotas
+description: Agrupando rotas sob um prefixo e middlewares compartilhados no Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`app:group(prefix)` reúne rotas sob um prefixo de caminho compartilhado —
+como um Router do Express montado em um caminho, ou um plugin do Fastify
+registrado com `prefix`. Rotas registradas pelo grupo ganham o prefixo
+automaticamente.
+
+A forma usual é um callback que recebe o grupo:
+
+```lua
+app:group("/api", function(api)
+    api:get("/users", function(req, res)      -- GET /api/users
+        res:json({ users = {} })
+    end)
+
+    api:post("/users", function(req, res)     -- POST /api/users
+        res:status(201):json({ ok = true })
+    end)
+end)
+```
+
+O grupo também é retornado, então o callback é opcional:
+
+```lua
+local api = app:group("/api")
+
+api:get("/ping", function(req, res)            -- GET /api/ping
+    res:send("pong")
+end)
+```
+
+Todos os métodos de verbo (`get`, `post`, `put`, `delete`, `patch`,
+`options`, `head`) e os parâmetros de caminho funcionam exatamente como no
+app; o caminho `"/"` mapeia para o próprio prefixo:
+
+```lua
+app:group("/api", function(api)
+    api:get("/", handler)                      -- GET /api
+    api:get("/users/:id", handler)             -- GET /api/users/42
+end)
+```
+
+## Middlewares de grupo
+
+Uma lista de middlewares passada entre o prefixo e o callback roda antes de
+toda rota do grupo:
+
+```lua
+local function auth(req, res, next)
+    if req.headers["authorization"] then
+        next()
+    else
+        res:status(401):json({ error = "Unauthorized" })
+    end
+end
+
+app:group("/admin", { auth }, function(admin)
+    admin:get("/stats", function(req, res)     -- auth roda primeiro
+        res:send("secret")
+    end)
+end)
+```
+
+`group:use` faz o mesmo, um middleware por vez — vale para as rotas
+registradas depois da chamada:
+
+```lua
+local admin = app:group("/admin")
+admin:use(auth)
+admin:get("/stats", handler)
+```
+
+<Aside type="note">
+	Uma função sozinha depois do prefixo é sempre o callback. Para passar um
+	único middleware sem callback, envolva-o em uma tabela —
+	`app:group("/admin", { auth })` — ou use `group:use`.
+</Aside>
+
+## Aninhamento
+
+Grupos aninham; prefixos e middlewares acumulam:
+
+```lua
+app:group("/api", function(api)
+    api:group("/v1", function(v1)
+        v1:get("/users", handler)              -- GET /api/v1/users
+    end)
+end)
+```
+
+## Ordem de execução
+
+<Aside type="tip">
+	Middlewares globais → middlewares do grupo (do mais externo para o mais
+	interno) → middlewares da rota → handler.
+</Aside>
+
+Um middleware de grupo que responde sem chamar `next()` corta a cadeia para
+todas as rotas do grupo — é assim que o exemplo `auth` acima protege
+`/admin` por inteiro.

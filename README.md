@@ -102,7 +102,41 @@ app:get("/very-private", { auth, audit }, function(req, res)
 end)
 ```
 
-Execution order: global middlewares → route middlewares → handler.
+Execution order: global middlewares → group middlewares → route
+middlewares → handler.
+
+### Route groups
+
+`app:group(prefix)` gathers routes under a shared prefix — like an Express
+Router mounted on a path, or a Fastify plugin registered with a `prefix`:
+
+```lua
+app:group("/api", function(api)
+    api:get("/users", list_users)       -- GET /api/users
+    api:post("/users", create_user)     -- POST /api/users
+
+    api:group("/v2", function(v2)       -- groups nest
+        v2:get("/users", list_users_v2) -- GET /api/v2/users
+    end)
+end)
+```
+
+The group is also returned, so the callback is optional. A middleware list
+between the prefix and the callback runs before every route in the group;
+`group:use` adds one for the routes registered after the call:
+
+```lua
+app:group("/admin", { auth }, function(admin)
+    admin:get("/stats", stats)          -- auth runs first
+end)
+
+local reports = app:group("/reports")
+reports:use(auth)
+reports:get("/daily", daily)
+```
+
+A lone function after the prefix is always the callback — wrap a single
+middleware in a table (`{ auth }`) or use `group:use`.
 
 ### Request
 
