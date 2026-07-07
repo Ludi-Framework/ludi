@@ -1,4 +1,5 @@
 local core = require("ludi_core")
+local errfmt = require("ludi.errfmt")
 local reload = require("ludi.reload")
 local Router = require("ludi.router")
 local Request = require("ludi.request")
@@ -44,6 +45,11 @@ local run_chain = require("ludi.middleware")
 ---@field head ludi.RouteMethod
 local Ludi = {}
 Ludi.__index = Ludi
+
+-- Dev mode (LUDI_WATCH set): handler errors get the framed source excerpt
+-- on stderr. In production the log stays a single line.
+local watch_env = os.getenv("LUDI_WATCH")
+local DEV = watch_env ~= nil and watch_env ~= "" and watch_env ~= "0"
 
 ---@return Ludi
 function Ludi.new()
@@ -146,8 +152,13 @@ function Ludi:_dispatch(raw)
     if coroutine.close then coroutine.close(co) end
 
     if not ok then
-        io.stderr:write(("ludi: handler error on %s %s: %s\n"):format(
-                            raw.method, raw.path, tostring(err)))
+        if DEV then
+            io.stderr:write(errfmt.render(err, "handler",
+                ("%s %s responded 500"):format(raw.method, raw.path)))
+        else
+            io.stderr:write(("ludi: handler error on %s %s: %s\n"):format(
+                                raw.method, raw.path, tostring(err)))
+        end
         return {
             status = 500,
             headers = {["Content-Type"] = "application/json"},
@@ -180,8 +191,7 @@ function Ludi:listen(port, callback)
     local current = self
     local on_reload
 
-    local watch = os.getenv("LUDI_WATCH")
-    if watch and watch ~= "" and watch ~= "0" then
+    if DEV then
         local entrypoint = arg and arg[0]
         if core.bundled then
             -- A binary built by `ludi build` carries its sources inside;
