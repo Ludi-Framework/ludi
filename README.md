@@ -196,6 +196,9 @@ Notes:
 
 - A bundled binary always runs Lua 5.5, regardless of the interpreter
   used in development.
+- Modules resolve from the bundle first, then from the host's normal
+  LuaRocks trees — so native rocks (e.g. `fredy_core`) work, but must be
+  installed on the target machine. Pure-Lua apps run anywhere.
 - `LUDI_WATCH` is ignored inside a bundle (nothing on disk to watch).
 - See [ADR 0005](docs/adr/0005-binary-build.md) for the design.
 

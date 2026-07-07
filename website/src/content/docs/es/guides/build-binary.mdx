@@ -62,7 +62,9 @@ código fuente con `make cli` en el repositorio (requiere Rust).
 
 <Aside type="note">
 	Solo los archivos `*.lua` bajo el directorio del proyecto se
-	empaquetan. Las dependencias Lua puras deben vivir dentro del proyecto
-	para incluirse; las rocks nativas (C) no están soportadas dentro del
-	binario.
+	empaquetan. El resto — rocks nativas como `fredy_core`, rocks Lua
+	puras instaladas vía LuaRocks — se resuelve desde el sistema en
+	ejecución, así que debe estar instalado (compilado para Lua 5.5) en la
+	máquina destino. Una aplicación Lua pura sin rocks externas corre en
+	cualquier parte.
 </Aside>
