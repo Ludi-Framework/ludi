@@ -49,6 +49,13 @@ Ship a `ludi` CLI whose binary doubles as the application runtime.
   bundling.
 - Hot reload is meaningless inside a bundle; `LUDI_WATCH` is ignored
   with a warning (`ludi_core.bundled` flag).
-- Native Lua dependencies from LuaRocks (C `.so` rocks) are not bundled;
-  pure-Lua dependencies must live under the project directory to be
-  packed. Revisit if real projects hit this.
+- Module resolution order at run time: bundle first, then the host's
+  normal `package.path`/`package.cpath`. Native rocks (`fredy_core`,
+  `lsqlite3`, ...) are never packed — they load from the host, which
+  requires the Lua state to allow C loaders (`Lua::unsafe_new`) and the
+  binary to export the static Lua API to `dlopen`ed libraries
+  (`-rdynamic` on Linux; macOS exports by default).
+- Therefore "runs anywhere" holds for pure-Lua applications; an app
+  using native rocks needs those rocks (built for Lua 5.5) installed on
+  the target machine. Embedding first-party native modules (fredy) into
+  the runtime via cargo features is the planned next step.

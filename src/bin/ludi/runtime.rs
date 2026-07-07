@@ -7,7 +7,12 @@ use ludi_core::embedded;
 use mlua::prelude::*;
 
 pub fn run(bundle: Bundle) -> ExitCode {
-    let lua = Lua::new();
+    // unsafe_new: mlua's default state blocks the C loader ("safe mode"),
+    // which would break native rocks installed on the host (fredy_core,
+    // lsqlite3, ...). The bundle carries only Lua sources; native
+    // dependencies keep resolving from package.cpath like under a plain
+    // interpreter.
+    let lua = unsafe { Lua::unsafe_new() };
     match execute(&lua, bundle) {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {

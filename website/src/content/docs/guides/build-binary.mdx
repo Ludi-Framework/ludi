@@ -59,7 +59,9 @@ macOS (Apple Silicon): use `ludi-darwin-arm64`. Or build from source with
   watch. Hot reload is for development; the binary is for deploy.
 
 <Aside type="note">
-	Only `*.lua` files under the project directory are packed. Pure-Lua
-	dependencies must live inside the project to be bundled; native (C)
-	rocks are not supported inside a binary.
+	Only `*.lua` files under the project directory are packed. Anything
+	else — native rocks like `fredy_core`, pure-Lua rocks installed via
+	LuaRocks — resolves from the system at run time, so it must be
+	installed (built for Lua 5.5) on the target machine. A pure-Lua
+	application with no external rocks runs anywhere.
 </Aside>

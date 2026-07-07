@@ -61,7 +61,9 @@ macOS (Apple Silicon): use `ludi-darwin-arm64`. Ou compile do fonte com
   observar. Hot reload é para desenvolvimento; o binário é para deploy.
 
 <Aside type="note">
-	Só arquivos `*.lua` sob o diretório do projeto entram no pacote.
-	Dependências Lua puras precisam viver dentro do projeto para serem
-	empacotadas; rocks nativas (C) não são suportadas dentro do binário.
+	Só arquivos `*.lua` sob o diretório do projeto entram no pacote. O
+	resto — rocks nativas como `fredy_core`, rocks Lua puras instaladas
+	via LuaRocks — resolve do sistema em execução, então precisa estar
+	instalado (compilado para Lua 5.5) na máquina destino. Uma aplicação
+	Lua pura sem rocks externas roda em qualquer lugar.
 </Aside>
