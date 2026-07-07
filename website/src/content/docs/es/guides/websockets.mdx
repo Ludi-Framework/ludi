@@ -78,8 +78,8 @@ end)
 ## Middlewares y el handshake
 
 Los middlewares — globales, por ruta y vía
-[grupos de rutas](/es/guides/route-groups/) — se ejecutan en el momento
-del handshake con la firma usual `(req, res, next)`. Responder en lugar
+[grupos de rutas](/es/guides/middleware/#middlewares-de-grupo) — se
+ejecutan en el momento del handshake con la firma usual `(req, res, next)`. Responder en lugar
 de llamar a `next()` rechaza el handshake con esa respuesta HTTP:
 
 ```lua

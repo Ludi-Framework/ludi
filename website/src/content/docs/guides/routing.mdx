@@ -62,30 +62,8 @@ api:get("/ping", function(req, res)            -- GET /api/ping
 end)
 ```
 
-### Group middlewares
-
-A [middleware](/guides/middleware/) list between the prefix and the
-callback runs before every route in the group; `group:use` adds one for
-the routes registered after the call:
-
-```lua
-app:group("/admin", { auth }, function(admin)
-    admin:get("/stats", handler)               -- auth runs first
-end)
-
-local reports = app:group("/reports")
-reports:use(auth)
-reports:get("/daily", handler)
-```
-
-Execution order: global middlewares → group middlewares (outermost
-first) → route middlewares → handler.
-
-<Aside type="note">
-	A lone function after the prefix is always the body callback. To pass a
-	single middleware without a body, wrap it in a table —
-	`app:group("/admin", { auth })` — or use `group:use`.
-</Aside>
+Groups also take middlewares, running before every route in the group —
+see [group middlewares](/guides/middleware/#group-middlewares).
 
 ## Unmatched routes
 

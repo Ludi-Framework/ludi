@@ -76,8 +76,9 @@ end)
 
 ## Middlewares and the handshake
 
-Middlewares — global, per-route and via [route groups](/guides/route-groups/)
-— run at handshake time with the usual `(req, res, next)` signature.
+Middlewares — global, per-route and via
+[route groups](/guides/middleware/#group-middlewares) — run at handshake
+time with the usual `(req, res, next)` signature.
 Responding instead of calling `next()` rejects the handshake with that
 HTTP response:
 
