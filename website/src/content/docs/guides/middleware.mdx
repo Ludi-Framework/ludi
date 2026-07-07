@@ -48,8 +48,8 @@ end)
 	always in registration order.
 </Aside>
 
-Middlewares can also be attached to a whole [route group](/guides/route-groups/)
-at once.
+Middlewares can also be attached to a whole
+[route group](/guides/routing/#route-groups) at once.
 
 A middleware that responds without calling `next()` short-circuits the chain
 — the handler never runs. That is how the `auth` example above rejects
