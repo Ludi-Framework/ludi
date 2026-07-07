@@ -24,6 +24,25 @@ Status: plan agreed on 2026-07-07, not implemented yet.
    SSH key (as a repo secret for CI auto-bumps — e.g. the
    KSXGitHub/github-actions-deploy-aur action).
 
+## Windows (`.exe`) — deferred
+
+The bundle technique works on PE executables (appended payload +
+trailer), mlua vendored builds with MSVC, and tokio/hyper support
+Windows. Decided on 2026-07-07 to defer. What it takes when picked up:
+
+1. `ludi build` must append `.exe` to the default output name on
+   Windows.
+2. Release matrix gains `windows-latest` producing
+   `ludi-windows-x86_64.exe`.
+3. Platform limitation to document: native rocks (e.g. `fredy_core`)
+   cannot load — a Windows DLL module links against the interpreter
+   DLL's import library, and an executable with a static Lua cannot
+   export those symbols (no `-rdynamic` equivalent in PE). Windows
+   bundles are pure-Lua only until first-party native modules are
+   embedded into the runtime via cargo features.
+4. Untested until it runs on a real Windows runner — treat as
+   unsupported before that.
+
 ## Rejected channels
 
 - **LuaRocks** — a rock that compiles the CLI needs the Rust toolchain
