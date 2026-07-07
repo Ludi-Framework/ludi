@@ -9,7 +9,7 @@ Como en Go, una aplicación Ludi puede distribuirse como un único
 ejecutable autocontenido — sin Lua, sin LuaRocks en la máquina destino:
 
 ```bash
-ludi build                    # entry: app.lua, server.lua o main.lua
+ludi build                    # entry auto-detectado cuando no hay ambiguedad
 ludi build server.lua -o api  # o entry y nombre de salida explícitos
 ./api
 ```
@@ -23,6 +23,21 @@ hot-reload.
 
 En ejecución, `require` resuelve desde dentro del bundle; el filesystem
 nunca se consulta para módulos. El deploy es `scp` y ejecutar.
+
+## Detección del entrypoint
+
+Sin un entry explícito, `ludi build` acepta los nombres convencionales
+`app.lua`, `server.lua`, `main.lua` e `init.lua` — pero solo cuando
+existe exactamente uno de ellos en el proyecto. Con dos o más presentes
+no hay conjetura segura (un `app.lua` junto a un `server.lua` suele ser
+un módulo, no el runner), así que el build se detiene y pregunta:
+
+```
+ludi build: several possible entrypoints here (app.lua, server.lua); pass one: ludi build <entry.lua>
+```
+
+Cualquier nombre de archivo funciona pasado explícitamente:
+`ludi build cualquiera.lua`.
 
 ## Obteniendo el CLI
 

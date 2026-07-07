@@ -9,7 +9,7 @@ Like Go, a Ludi application can ship as one self-contained executable —
 no Lua, no LuaRocks on the target machine:
 
 ```bash
-ludi build                    # entry: app.lua, server.lua or main.lua
+ludi build                    # entry auto-detected when unambiguous
 ludi build server.lua -o api  # or explicit entry and output name
 ./api
 ```
@@ -22,6 +22,20 @@ the same rules the hot-reload watcher uses.
 
 At run time, `require` resolves from inside the bundle; the filesystem is
 never consulted for modules. Deploy is `scp` and run.
+
+## Entrypoint detection
+
+Without an explicit entry, `ludi build` accepts the conventional names
+`app.lua`, `server.lua`, `main.lua` and `init.lua` — but only when
+exactly one of them exists in the project. With two or more present
+there is no safe guess (an `app.lua` next to a `server.lua` is usually a
+module, not the runner), so the build stops and asks:
+
+```
+ludi build: several possible entrypoints here (app.lua, server.lua); pass one: ludi build <entry.lua>
+```
+
+Any file name works when passed explicitly: `ludi build whatever.lua`.
 
 ## Getting the CLI
 

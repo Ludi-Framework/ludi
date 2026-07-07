@@ -172,10 +172,16 @@ Like Go, a Ludi application can ship as a single self-contained
 executable — no Lua, no LuaRocks on the target machine:
 
 ```bash
-ludi build                    # entry: app.lua, server.lua or main.lua
+ludi build                    # entry auto-detected when unambiguous
 ludi build server.lua -o api  # or explicit entry and output name
 ./api
 ```
+
+Without an explicit entry, `ludi build` accepts the conventional names
+`app.lua`, `server.lua`, `main.lua` and `init.lua` — but only when
+exactly one of them exists. With two or more present there is no safe
+guess (an `app.lua` next to a `server.lua` is usually a module, not the
+runner), so the build asks for the entrypoint instead of guessing wrong.
 
 `ludi build` packs every `*.lua` file under the current directory (same
 skip rules as the watcher) into a copy of the `ludi` runtime: a static
