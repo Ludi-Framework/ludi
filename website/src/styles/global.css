@@ -111,20 +111,37 @@
 		color: var(--sl-color-gray-3);
 	}
 
-	site-search kbd {
+	/* Single "Ctrl K" pill: the outer <kbd> is the container, the inner
+	   <kbd>s are plain text (Starlight nests them). */
+	site-search button > kbd {
 		border: 1px solid var(--sl-color-hairline);
 		border-radius: 999px;
 		background-color: var(--ludi-pill-bg);
-		padding: 0.3rem 0.7rem;
+		padding: 0.25rem 0.7rem;
+		gap: 0.3rem;
 	}
 
-	/* Theme and language pickers as outline pills. */
+	site-search button > kbd kbd {
+		border: 0;
+		border-radius: 0;
+		background: none;
+		padding: 0;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+
+	/* Theme and language pickers as compact outline pills. Starlight
+	   positions the two svgs (icon + caret) absolutely against the label
+	   and sizes the select with a fixed width + negative margins; the
+	   overrides below re-anchor everything inside the pill padding. */
 	starlight-theme-select label,
 	starlight-lang-select label {
+		--sl-caret-size: 1rem;
+		--sl-inline-padding: 0;
 		border: 1px solid var(--sl-color-hairline);
 		border-radius: 999px;
 		background-color: var(--ludi-pill-bg);
-		padding: 0.3rem 0.625rem;
+		padding: 0.3rem 0.75rem;
 		color: var(--sl-color-white);
 	}
 
@@ -133,12 +150,46 @@
 		border-color: var(--sl-color-accent);
 	}
 
-	/* Starlight caps the selects with a fixed inline width; combined with
-	   the pill padding it truncates labels ("Escu…"). Let them size to
-	   their content instead. */
+	/* Text-only theme pill, like the design's "Dark" button. */
+	starlight-theme-select .label-icon {
+		display: none;
+	}
+
+	starlight-theme-select select {
+		padding-inline-start: 0.25rem;
+	}
+
+	starlight-lang-select .label-icon {
+		inset-inline-start: 0.75rem;
+	}
+
+	starlight-theme-select .caret,
+	starlight-lang-select .caret {
+		inset-inline-end: 0.625rem;
+	}
+
 	starlight-theme-select select,
 	starlight-lang-select select {
 		width: auto;
+		margin: 0;
+		font-size: 0.8125rem;
+	}
+
+	/* The language pill would be huge with "Português (Brasil)" in it:
+	   collapse it to icon + caret and stretch the (invisible) select over
+	   the pill so the native dropdown still opens with the full names. */
+	starlight-lang-select label {
+		width: 3.625rem;
+		height: 2.125rem;
+	}
+
+	starlight-lang-select select {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		opacity: 0;
 	}
 
 	/* ── Sidebar ────────────────────────────────────────────────── */
@@ -236,25 +287,122 @@
 		--ludi-card-tint: #f97316;
 	}
 
+	/* Layout duplicated from Starlight's scoped Card styles so the
+	   custom FeatureCard (same markup, no scoped classes) matches. */
+	.card {
+		flex-direction: column;
+		gap: 0.875rem;
+	}
+
 	.card .title {
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 0.875rem;
 		font-size: 1.125rem;
+		font-weight: 700;
+		line-height: var(--sl-line-height-headings);
+		color: var(--sl-color-white);
 	}
 
 	.card .title .icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
 		width: 2.75rem;
 		height: 2.75rem;
+		border: 0;
 		border-radius: 0.875rem;
+		background-color: var(--sl-card-bg);
 		color: var(--ludi-card-tint);
 		padding: 0.625rem;
 	}
 
 	.card .body {
+		margin: 0;
 		font-size: var(--sl-text-sm);
 		line-height: 1.55;
 		color: var(--sl-color-gray-3);
+	}
+
+	/* ── Code blocks (Expressive Code) ──────────────────────────── */
+
+	/* macOS traffic lights on every frame, like the design's windows.
+	   Terminal frames already have Expressive Code's dots — these
+	   overrides recolor them to the design's red/yellow/green. */
+	.expressive-code .frame .header::before {
+		content: '';
+		position: static;
+		flex-shrink: 0;
+		width: 0.625rem;
+		height: 0.625rem;
+		margin: 0 1.5rem 0 1.375rem;
+		border-radius: 999px;
+		background: #ff5f57;
+		box-shadow:
+			1.125rem 0 0 #febc2e,
+			2.25rem 0 0 #28c840;
+		opacity: 1;
+		/* Expressive Code paints its terminal dots through a mask. */
+		mask: none;
+		-webkit-mask: none;
+	}
+
+	/* Terminal titlebars aren't flex by default, which mangles the dots
+	   above; lay them out like the design's toolbar, label after dots. */
+	.expressive-code .frame.is-terminal .header {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.875rem;
+	}
+
+	.expressive-code .frame.is-terminal .header .title {
+		color: var(--ludi-code-muted);
+		font-size: 0.8125rem;
+	}
+
+	/* Untitled editor frames hide the toolbar by default: show it so the
+	   dots are always there, and stop the code from rounding over it. */
+	.expressive-code .frame:not(.has-title):not(.is-terminal) .header {
+		display: flex;
+		align-items: center;
+		height: 2.5rem;
+		border: 1px solid var(--ludi-code-border);
+		border-bottom: 0;
+		border-radius: 1.25rem 1.25rem 0 0;
+		background-color: var(--ludi-code-surface);
+	}
+
+	.expressive-code .frame:not(.has-title):not(.is-terminal) pre {
+		border-top-left-radius: 0;
+		border-top-right-radius: 0;
+	}
+
+	/* Titled editor frames: plain right-aligned filename instead of the
+	   default active-tab box, matching the design. */
+	.expressive-code .frame.has-title:not(.is-terminal) .header {
+		display: flex;
+		align-items: center;
+	}
+
+	.expressive-code .frame.has-title:not(.is-terminal) .title {
+		margin-inline-start: auto;
+		margin-inline-end: 1.25rem;
+		border: 0;
+		background: transparent;
+		color: var(--ludi-code-muted);
+		font-size: 0.8125rem;
+		padding: 0;
+	}
+
+	/* ── Architecture page ──────────────────────────────────────── */
+
+	/* Three key-point cards side by side under the flow diagram. */
+	@media (min-width: 72rem) {
+		.arch-points .card-grid {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
 	}
 
 	/* ── Pagination ─────────────────────────────────────────────── */
