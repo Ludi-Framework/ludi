@@ -4,6 +4,11 @@
 
 local core = {}
 
+--- True when running inside a binary produced by `ludi build`; absent when
+--- loaded as a regular native module.
+---@type boolean?
+core.bundled = nil
+
 --- Starts the HTTP server and blocks. Calls `on_request` once per request
 --- with a raw request table; expects a raw response table back.
 --- `on_listen` runs once after the port is bound, before any request is
