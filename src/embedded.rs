@@ -10,4 +10,5 @@ pub const LUA_MODULES: &[(&str, &str)] = &[
     ("ludi.middleware", include_str!("../ludi/middleware.lua")),
     ("ludi.json", include_str!("../ludi/json.lua")),
     ("ludi.reload", include_str!("../ludi/reload.lua")),
+    ("ludi.errfmt", include_str!("../ludi/errfmt.lua")),
 ];

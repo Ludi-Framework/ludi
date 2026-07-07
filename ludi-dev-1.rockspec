@@ -46,7 +46,8 @@ build = {
          ["ludi.response"] = "ludi/response.lua",
          ["ludi.middleware"] = "ludi/middleware.lua",
          ["ludi.json"] = "ludi/json.lua",
-         ["ludi.reload"] = "ludi/reload.lua"
+         ["ludi.reload"] = "ludi/reload.lua",
+         ["ludi.errfmt"] = "ludi/errfmt.lua"
       }
    }
 }
