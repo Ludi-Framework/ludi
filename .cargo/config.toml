@@ -1,0 +1,10 @@
+# macOS refuses undefined symbols in a cdylib by default, but a Lua native
+# module must leave the Lua API unresolved until the host interpreter loads
+# it (mlua module mode). Linux needs nothing; these flags are the documented
+# mlua requirement for macOS.
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
