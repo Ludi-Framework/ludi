@@ -24,13 +24,28 @@ Edite uma rota, salve, atualize a página: a mudança já está no ar.
    interceptada e o app novo substitui o antigo no lugar.
 
 O reload roda na thread Lua, entre requisições — nunca no meio de uma.
-Um reload que falha (erro de sintaxe, erro ao carregar) é logado no stderr
-e a versão anterior continua servindo até a próxima alteração:
+Um reload que falha (erro de sintaxe, erro ao carregar) imprime no stderr
+um trecho do código emoldurado — linha culpada destacada, com carets sob o
+token em que o parser travou — e a versão anterior continua servindo até a
+próxima alteração:
 
 ```
-ludi: reloading (app.lua changed)
-ludi: reload failed, keeping previous version: app.lua:12: syntax error near ')'
+  reloading (app.lua changed)
+
+  ✗ Syntax error — keeping previous version
+
+  app.lua:12 ')' expected (to close '(' at line 10) near 'end'
+
+    10 │ app:get("/users", function(_, res)
+    11 │     res:json({ users = users })
+  ▶ 12 │ end
+       │ ^^^
+
+  Fix the file and save to reload.
 ```
+
+Um reload bem-sucedido imprime `✓ reloaded`. As cores são desativadas com
+`NO_COLOR` definido ou em terminais burros.
 
 ## Semântica
 

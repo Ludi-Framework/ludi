@@ -27,14 +27,28 @@ Edita una ruta, guarda, refresca: el cambio ya está en vivo.
    su lugar.
 
 La recarga corre en el hilo de Lua, entre peticiones — nunca en medio de
-una. Una recarga que falla (error de sintaxis, error al cargar) se
-registra en stderr y la versión anterior sigue sirviendo hasta el próximo
-cambio:
+una. Una recarga que falla (error de sintaxis, error al cargar) imprime en
+stderr un extracto enmarcado del código — línea culpable resaltada, con
+carets bajo el token en el que se atascó el parser — y la versión anterior
+sigue sirviendo hasta el próximo cambio:
 
 ```
-ludi: reloading (app.lua changed)
-ludi: reload failed, keeping previous version: app.lua:12: syntax error near ')'
+  reloading (app.lua changed)
+
+  ✗ Syntax error — keeping previous version
+
+  app.lua:12 ')' expected (to close '(' at line 10) near 'end'
+
+    10 │ app:get("/users", function(_, res)
+    11 │     res:json({ users = users })
+  ▶ 12 │ end
+       │ ^^^
+
+  Fix the file and save to reload.
 ```
+
+Una recarga exitosa imprime `✓ reloaded`. Los colores se desactivan con
+`NO_COLOR` definido o en terminales tontas.
 
 ## Semántica
 
