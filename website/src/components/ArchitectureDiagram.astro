@@ -1,0 +1,123 @@
+---
+/**
+ * Request-flow diagram for the architecture page, mirroring the Figma
+ * "Desktop / Architecture" frame: HTTP clients → Rust core → mpsc
+ * channel → Lua thread, as rounded nodes joined by arrows.
+ *
+ * Labels are localized here (same pattern as Footer.astro); the dark
+ * nodes reuse the fixed --ludi-code-* tokens so they match the code
+ * windows in both themes.
+ */
+type Node = {
+	title: string;
+	detail?: string;
+	variant: 'plain' | 'dark' | 'accent';
+};
+
+const flows: Record<string, Node[]> = {
+	en: [
+		{ title: 'HTTP clients', variant: 'plain' },
+		{ title: 'Rust core', detail: 'hyper + tokio', variant: 'dark' },
+		{ title: 'mpsc channel', detail: 'one Job per request', variant: 'accent' },
+		{ title: 'Lua thread', detail: 'routing + handlers', variant: 'dark' },
+	],
+	es: [
+		{ title: 'Clientes HTTP', variant: 'plain' },
+		{ title: 'Núcleo Rust', detail: 'hyper + tokio', variant: 'dark' },
+		{ title: 'Canal mpsc', detail: 'un Job por request', variant: 'accent' },
+		{ title: 'Thread de Lua', detail: 'rutas + handlers', variant: 'dark' },
+	],
+	'pt-BR': [
+		{ title: 'Clientes HTTP', variant: 'plain' },
+		{ title: 'Núcleo Rust', detail: 'hyper + tokio', variant: 'dark' },
+		{ title: 'Canal mpsc', detail: 'um Job por request', variant: 'accent' },
+		{ title: 'Thread Lua', detail: 'rotas + handlers', variant: 'dark' },
+	],
+};
+
+const lang = Astro.currentLocale ?? 'en';
+const nodes = flows[lang] ?? flows.en;
+---
+
+<div
+	class="diagram not-content"
+	role="img"
+	aria-label={nodes.map((n) => n.title).join(' → ')}
+>
+	{
+		/* Arrow and node share a wrapper so a line break never strands an
+		   arrow at the end of the previous row. */
+		nodes.map((node, index) => (
+			<span class="step">
+				{index > 0 && (
+					<span class="arrow" aria-hidden="true">
+						→
+					</span>
+				)}
+				<span class:list={['node', node.variant]}>
+					<strong>{node.title}</strong>
+					{node.detail && <span class="detail">{node.detail}</span>}
+				</span>
+			</span>
+		))
+	}
+</div>
+
+<style>
+	.diagram {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.625rem;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 1.375rem;
+		background-color: var(--ludi-pill-bg);
+		box-shadow: var(--ludi-shadow-card);
+		padding: 1.5rem;
+		margin-top: 1.5rem;
+	}
+
+	.step {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.625rem;
+	}
+
+	.node {
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		border-radius: 0.875rem;
+		padding: 0.6875rem 0.875rem;
+		font-size: 0.875rem;
+		line-height: 1.35;
+	}
+
+	.node.plain {
+		border: 1px solid var(--sl-color-hairline);
+		background-color: var(--ludi-input-bg);
+		color: var(--sl-color-white);
+	}
+
+	.node.dark {
+		background-color: var(--ludi-code-bg);
+		border: 1px solid var(--ludi-code-border);
+		color: var(--ludi-code-text);
+	}
+
+	.node.accent {
+		background-color: var(--color-accent-600);
+		border: 1px solid var(--color-accent-600);
+		color: #ffffff;
+	}
+
+	.node .detail {
+		font-size: 0.75rem;
+		opacity: 0.75;
+	}
+
+	.arrow {
+		color: var(--sl-color-gray-3);
+		font-size: 1.125rem;
+	}
+</style>

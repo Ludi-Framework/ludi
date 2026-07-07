@@ -3,30 +3,33 @@ title: Arquitetura
 description: Como o Ludi divide o trabalho entre Rust e Lua.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+import ArchitectureDiagram from '../../../../components/ArchitectureDiagram.astro';
 
 O Ludi é um framework web em que o código da aplicação é Lua e o runtime é
-Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)).
+Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)). O módulo
+nativo (`ludi_core`) roda worker threads do hyper; seu app roda em uma
+única thread Lua, estilo Node.
 
-```
-                    ┌────────────────────────────┐
- Clientes HTTP ──▶  │  Rust: hyper + tokio       │   ludi_core (módulo nativo)
-                    │  worker threads            │
-                    └────────────┬───────────────┘
-                       canal mpsc (um Job por requisição)
-                    ┌────────────▼───────────────┐
-                    │  Thread Lua (seu app)      │   rotas, middlewares,
-                    │  single-thread, estilo Node│   handlers — Lua puro
-                    └────────────────────────────┘
-```
+<ArchitectureDiagram />
 
-- **Rust é só transporte**: faz o parsing do HTTP, aplica limites e
-  encaminha cada requisição por um canal. Não sabe nada sobre rotas.
-- **Todo o Lua roda em uma única thread** — o interpretador que chamou
-  `app:listen()`. As worker threads nunca tocam o interpretador, então não
-  há callbacks entre threads nem FFI.
-- Cada worker do hyper aguarda sua resposta em um canal oneshot, então
-  handlers lentos não bloqueiam o accept de conexões.
+<div class="arch-points">
+	<CardGrid>
+		<Card title="Rust é só transporte">
+			Faz o parsing do HTTP, aplica limites e encaminha cada requisição por um
+			canal. Não sabe nada sobre rotas.
+		</Card>
+		<Card title="Lua continua single-thread">
+			Todo o Lua roda no interpretador que chamou `app:listen()` — sem locks e
+			sem data races no código da aplicação.
+		</Card>
+		<Card title="Sem callbacks FFI">
+			As worker threads nunca tocam o interpretador. Cada worker do hyper
+			aguarda sua resposta em um canal oneshot, então handlers lentos não
+			bloqueiam o accept.
+		</Card>
+	</CardGrid>
+</div>
 
 ## Modelo de concorrência
 

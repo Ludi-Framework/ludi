@@ -2,48 +2,51 @@
 title: Ludi
 description: An Express-style web framework for Lua, powered by Rust.
 template: splash
+# The default pattern would render "Ludi | Ludi" on the homepage.
+head:
+  - tag: title
+    content: Ludi
 hero:
-  tagline: An Express-style web framework for Lua, powered by Rust.
+  tagline:
+    An Express-style web framework for Lua, powered by Rust. Ship familiar
+    routing, middlewares and handlers while a native core handles fast HTTP
+    I/O.
   actions:
     - text: Get Started
       link: /getting-started/installation/
-      icon: right-arrow
     - text: View on GitHub
       link: https://github.com/Ludi-Framework/ludi
-      icon: external
       variant: minimal
+ludi:
+  badge: Lua ergonomics • Rust-powered HTTP
+  chips:
+    - title: Lua-first API
+      detail: plain handlers
+    - title: Native core
+      detail: hyper + tokio
+    - title: Zero runtime
+      detail: no nginx needed
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import RustLogo from '../../assets/rust.svg';
+import FeatureCard from '../../components/FeatureCard.astro';
 
-```lua
-local ludi = require("ludi")
+## Built for Lua developers who want modern web ergonomics.
 
-local app = ludi.new()
+Ludi keeps the application layer small and expressive while Rust handles the
+transport layer, parsing, limits and sockets.
 
-app:get("/users/:id", function(req, res)
-    res:json({ id = req.params.id })
-end)
-
-app:listen(3000, function()
-    print("Listening on http://localhost:3000")
-end)
-```
-
-```bash
-luarocks install ludi
-lua app.lua
-```
-
-<CardGrid stagger>
+<CardGrid>
 	<Card title="Express-style API" icon="rocket">
 		Routing, middlewares and handlers are plain Lua, with the API you already
 		know from Express and Fastify.
 	</Card>
-	<Card title="Rust core" icon="setting">
-		A native module built on hyper + tokio does the HTTP heavy lifting: fast
-		parsing, limits and socket I/O.
-	</Card>
+	<FeatureCard title="Rust core">
+		<RustLogo slot="icon" width={24} height={24} />A native module built on
+		hyper + tokio does the HTTP heavy lifting: fast parsing, limits and socket
+		I/O.
+	</FeatureCard>
 	<Card title="No extra runtime" icon="approve-check">
 		No OpenResty, no nginx, no separate runtime — just `require("ludi")` and run
 		your app with any Lua interpreter.

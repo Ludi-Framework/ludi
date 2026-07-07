@@ -3,30 +3,32 @@ title: Architecture
 description: How Ludi splits work between Rust and Lua.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Card, CardGrid } from '@astrojs/starlight/components';
+import ArchitectureDiagram from '../../../components/ArchitectureDiagram.astro';
 
 Ludi is a web framework where application code is Lua and the runtime is
-Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)).
+Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)). The native
+module (`ludi_core`) runs hyper worker threads; your app runs on a single
+Lua thread, Node-like.
 
-```
-                    ┌────────────────────────────┐
- HTTP clients ───▶  │  Rust: hyper + tokio       │   ludi_core (native module)
-                    │  worker threads            │
-                    └────────────┬───────────────┘
-                          mpsc channel (one Job per request)
-                    ┌────────────▼───────────────┐
-                    │  Lua thread (your app)     │   routing, middlewares,
-                    │  single-threaded, Node-like│   handlers — plain Lua
-                    └────────────────────────────┘
-```
+<ArchitectureDiagram />
 
-- **Rust is transport only**: it parses HTTP, enforces limits, and forwards
-  each request through a channel. It knows nothing about routes.
-- **All Lua runs on a single thread** — the interpreter that called
-  `app:listen()`. Worker threads never touch the interpreter, so there are
-  no cross-thread callbacks and no FFI.
-- Each hyper worker awaits its response on a oneshot channel, so slow
-  handlers don't block connection accept.
+<div class="arch-points">
+	<CardGrid>
+		<Card title="Rust is transport only">
+			It parses HTTP, enforces limits, and forwards each request through a
+			channel. It knows nothing about routes.
+		</Card>
+		<Card title="Lua stays single-threaded">
+			All Lua runs on the interpreter that called `app:listen()` — no locks, no
+			data races in application code.
+		</Card>
+		<Card title="No FFI callbacks">
+			Worker threads never touch the interpreter. Each hyper worker awaits its
+			response on a oneshot channel, so slow handlers don't block accept.
+		</Card>
+	</CardGrid>
+</div>
 
 ## Concurrency model
 

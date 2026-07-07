@@ -1,0 +1,141 @@
+---
+/**
+ * Decorative code window for the splash hero, mirroring the Figma
+ * "Code preview / Hero" frame: macOS-style toolbar, a minimal Lua
+ * sample and an embedded terminal panel with the install commands.
+ *
+ * Colors come from the fixed --ludi-code-* tokens (global.css), so the
+ * window stays dark in both themes, exactly like the design. The Lua
+ * sample is highlighted with Astro's built-in Shiki <Code> component.
+ */
+import { Code } from 'astro:components';
+
+const labels: Record<string, string> = {
+	en: 'Terminal window',
+	es: 'Ventana de terminal',
+	'pt-BR': 'Janela do terminal',
+};
+
+const lang = Astro.currentLocale ?? 'en';
+const terminalLabel = labels[lang] ?? labels.en;
+
+const code = `local ludi = require("ludi")
+
+local app = ludi.new()
+
+app:get("/users/:id", function(req, res)
+    res:json({ id = req.params.id })
+end)
+
+app:listen(3000, function()
+    print("Listening on http://localhost:3000")
+end)`;
+
+const commands = ['luarocks install ludi', 'lua app.lua'];
+---
+
+<div class="window">
+	<div class="toolbar">
+		<span class="dots" aria-hidden="true">
+			<span class="dot close"></span>
+			<span class="dot minimize"></span>
+			<span class="dot zoom"></span>
+		</span>
+		<span class="filename">app.lua</span>
+	</div>
+	<div class="code">
+		<Code code={code} lang="lua" theme="one-dark-pro" />
+	</div>
+	<div class="terminal">
+		<p class="terminal-label">{terminalLabel}</p>
+		<pre
+			class="terminal-code"><code>{commands.map((command) => `$ ${command}`).join('\n')}</code></pre>
+	</div>
+</div>
+
+<style>
+	.window {
+		border: 1px solid var(--ludi-code-border);
+		border-radius: 1.75rem;
+		background-color: var(--ludi-code-bg);
+		box-shadow: var(--ludi-shadow-window);
+		overflow: hidden;
+	}
+
+	.toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 3rem;
+		padding-inline: 1.375rem 1.75rem;
+		background-color: var(--ludi-code-surface);
+	}
+
+	.dots {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.dot {
+		width: 0.625rem;
+		height: 0.625rem;
+		border-radius: 999px;
+	}
+
+	.dot.close {
+		background-color: #ff5f57;
+	}
+
+	.dot.minimize {
+		background-color: #febc2e;
+	}
+
+	.dot.zoom {
+		background-color: #28c840;
+	}
+
+	.filename {
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--ludi-code-muted);
+	}
+
+	.code {
+		padding: 1.75rem 2.125rem;
+	}
+
+	/* The window provides the background; Shiki's own must not paint over it. */
+	.code :global(pre.astro-code) {
+		margin: 0;
+		padding: 0;
+		background-color: transparent !important;
+		font-size: 0.875rem;
+		line-height: 1.75;
+		overflow-x: auto;
+	}
+
+	.terminal {
+		margin: 0 1.75rem 1.75rem;
+		border: 1px solid var(--ludi-code-border);
+		border-radius: 1.125rem;
+		background-color: var(--ludi-code-surface);
+		padding: 0.9375rem 1.1875rem 1.0625rem;
+	}
+
+	.terminal-label {
+		margin: 0;
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--ludi-code-muted);
+	}
+
+	.terminal-code {
+		margin: 0.5rem 0 0;
+		padding: 0;
+		font-family: var(--__sl-font-mono, ui-monospace, monospace);
+		font-size: 0.875rem;
+		line-height: 1.6;
+		color: var(--ludi-terminal-text);
+		overflow-x: auto;
+	}
+</style>

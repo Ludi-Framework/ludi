@@ -2,48 +2,50 @@
 title: Ludi
 description: Un framework web estilo Express para Lua, impulsado por Rust.
 template: splash
+# The default pattern would render "Ludi | Ludi" on the homepage.
+head:
+  - tag: title
+    content: Ludi
 hero:
-  tagline: Un framework web estilo Express para Lua, impulsado por Rust.
+  tagline: Un framework web estilo Express para Lua, impulsado por Rust. Escribe
+    rutas, middlewares y handlers como ya sabes, mientras el núcleo nativo se
+    encarga del HTTP de alto rendimiento.
   actions:
     - text: Empezar
       link: /es/getting-started/installation/
-      icon: right-arrow
     - text: Ver en GitHub
       link: https://github.com/Ludi-Framework/ludi
-      icon: external
       variant: minimal
+ludi:
+  badge: Ergonomía de Lua • HTTP potenciado por Rust
+  chips:
+    - title: API Lua-first
+      detail: handlers simples
+    - title: Núcleo nativo
+      detail: hyper + tokio
+    - title: Cero runtime
+      detail: sin nginx
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
+import RustLogo from '../../../assets/rust.svg';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
-```lua
-local ludi = require("ludi")
+## Hecho para desarrolladores Lua que quieren ergonomía web moderna.
 
-local app = ludi.new()
+Ludi mantiene la capa de aplicación pequeña y expresiva mientras Rust se
+encarga de la capa de transporte, parsing, límites y sockets.
 
-app:get("/users/:id", function(req, res)
-    res:json({ id = req.params.id })
-end)
-
-app:listen(3000, function()
-    print("Listening on http://localhost:3000")
-end)
-```
-
-```bash
-luarocks install ludi
-lua app.lua
-```
-
-<CardGrid stagger>
+<CardGrid>
 	<Card title="API estilo Express" icon="rocket">
 		Rutas, middlewares y handlers son Lua puro, con la API que ya conoces de
 		Express y Fastify.
 	</Card>
-	<Card title="Núcleo en Rust" icon="setting">
+	<FeatureCard title="Núcleo en Rust">
+		<RustLogo slot="icon" width={24} height={24} />
 		Un módulo nativo construido sobre hyper + tokio hace el trabajo pesado de
 		HTTP: parsing rápido, límites e I/O de sockets.
-	</Card>
+	</FeatureCard>
 	<Card title="Sin runtime extra" icon="approve-check">
 		Sin OpenResty, sin nginx, sin runtime separado — solo `require("ludi")` y
 		ejecuta tu app con cualquier intérprete de Lua.

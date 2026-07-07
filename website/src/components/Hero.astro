@@ -1,0 +1,164 @@
+---
+/**
+ * Starlight `Hero` override for the splash homepage, mirroring the
+ * Figma design: badge + title + tagline + CTAs + capability chips on
+ * the left, the code window (HeroCodeWindow.astro) on the right.
+ *
+ * Title, tagline and actions come from the standard `hero` frontmatter;
+ * the badge and chips come from the custom `ludi` block (see
+ * src/content.config.ts), so every locale's index.mdx stays fully
+ * translatable.
+ */
+import HeroCodeWindow from './HeroCodeWindow.astro';
+
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero ?? {};
+const badge = data.ludi?.badge;
+const chips = data.ludi?.chips ?? [];
+---
+
+<section class="hero">
+	<div class="copy">
+		{badge && <p class="badge">{badge}</p>}
+		<h1 id="_top" set:html={title} />
+		{tagline && <p class="tagline" set:html={tagline} />}
+		{
+			actions.length > 0 && (
+				<div class="actions">
+					{actions.map(({ text, link, variant }) => (
+						<a
+							class:list={['action', variant === 'primary' && 'primary']}
+							href={link}
+						>
+							{text}
+						</a>
+					))}
+				</div>
+			)
+		}
+		{
+			chips.length > 0 && (
+				<ul class="chips">
+					{chips.map((chip) => (
+						<li>
+							<strong>{chip.title}</strong>
+							<span>{chip.detail}</span>
+						</li>
+					))}
+				</ul>
+			)
+		}
+	</div>
+	<HeroCodeWindow />
+</section>
+
+<style>
+	.hero {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 3rem;
+		align-items: center;
+		padding-block: 2.5rem 1.5rem;
+	}
+
+	@media (min-width: 72rem) {
+		.hero {
+			grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+			gap: 4.5rem;
+			padding-block: 4.5rem 2.5rem;
+		}
+	}
+
+	.badge {
+		display: inline-block;
+		margin: 0;
+		border: 1px solid var(--ludi-accent-soft-border);
+		border-radius: 999px;
+		background-color: var(--ludi-accent-soft);
+		padding: 0.5rem 0.75rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		color: light-dark(var(--color-accent-600), var(--color-accent-300));
+	}
+
+	h1 {
+		margin-top: 1.375rem;
+		font-size: clamp(3rem, 8vw, 5.75rem);
+		font-weight: 800;
+		line-height: 1;
+		color: var(--sl-color-white);
+	}
+
+	.tagline {
+		margin-top: 1.375rem;
+		max-width: 36ch;
+		font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+		line-height: 1.45;
+		color: var(--sl-color-gray-3);
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.875rem;
+		margin-top: 1.875rem;
+	}
+
+	.action {
+		display: inline-flex;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 0.75rem;
+		background-color: var(--ludi-pill-bg);
+		padding: 0.8125rem 1.125rem;
+		font-size: 0.9375rem;
+		font-weight: 600;
+		text-decoration: none;
+		color: var(--sl-color-white);
+	}
+
+	.action:hover {
+		border-color: var(--sl-color-accent);
+	}
+
+	.action.primary {
+		border-color: var(--color-accent-600);
+		background-color: var(--color-accent-600);
+		box-shadow: 0 12px 14px rgba(79, 70, 229, 0.25);
+		color: #ffffff;
+	}
+
+	.action.primary:hover {
+		border-color: var(--color-accent-700);
+		background-color: var(--color-accent-700);
+	}
+
+	.chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		list-style: none;
+		margin: 2.125rem 0 0;
+		padding: 0;
+	}
+
+	.chips li {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		width: 10.3125rem;
+		border: 1px solid var(--sl-color-hairline);
+		border-radius: 1.125rem;
+		background-color: var(--ludi-pill-bg);
+		padding: 0.875rem;
+	}
+
+	.chips strong {
+		font-size: 0.9375rem;
+		color: var(--sl-color-white);
+	}
+
+	.chips span {
+		font-size: 0.8125rem;
+		color: var(--sl-color-gray-3);
+	}
+</style>
