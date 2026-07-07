@@ -80,6 +80,7 @@ export default defineConfig({
 						{ slug: 'guides/response' },
 						{ slug: 'guides/listening' },
 						{ slug: 'guides/hot-reload' },
+						{ slug: 'guides/build-binary' },
 					],
 				},
 				{

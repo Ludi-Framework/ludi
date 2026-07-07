@@ -1,0 +1,68 @@
+---
+title: Build en binario
+description: Distribuyendo la aplicación como un único ejecutable autocontenido.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Como en Go, una aplicación Ludi puede distribuirse como un único
+ejecutable autocontenido — sin Lua, sin LuaRocks en la máquina destino:
+
+```bash
+ludi build                    # entry auto-detectado cuando no hay ambiguedad
+ludi build server.lua -o api  # o entry y nombre de salida explícitos
+./api
+```
+
+El build es instantáneo: ningún compilador corre. `ludi build` empaqueta
+todos los archivos `*.lua` bajo el directorio actual en una copia del
+runtime de `ludi` — un Lua 5.5 estático, el framework y tu código en un
+solo archivo. Los directorios ocultos, `target/` y `lua_modules/`
+quedan fuera, las mismas reglas del watcher del hot-reload.
+
+En ejecución, `require` resuelve desde dentro del bundle; el filesystem
+nunca se consulta para módulos. El deploy es `scp` y ejecutar.
+
+## Detección del entrypoint
+
+Sin un entry explícito, `ludi build` acepta los nombres convencionales
+`app.lua`, `server.lua`, `main.lua` e `init.lua` — pero solo cuando
+existe exactamente uno de ellos en el proyecto. Con dos o más presentes
+no hay conjetura segura (un `app.lua` junto a un `server.lua` suele ser
+un módulo, no el runner), así que el build se detiene y pregunta:
+
+```
+ludi build: several possible entrypoints here (app.lua, server.lua); pass one: ludi build <entry.lua>
+```
+
+Cualquier nombre de archivo funciona pasado explícitamente:
+`ludi build cualquiera.lua`.
+
+## Obteniendo el CLI
+
+Cada release en GitHub trae el CLI por plataforma — descarga,
+`chmod +x`, listo:
+
+```bash
+curl -LO https://github.com/Ludi-Framework/ludi/releases/latest/download/ludi-linux-x86_64
+chmod +x ludi-linux-x86_64 && sudo mv ludi-linux-x86_64 /usr/local/bin/ludi
+```
+
+macOS (Apple Silicon): usa `ludi-darwin-arm64`. O compílalo desde el
+código fuente con `make cli` en el repositorio (requiere Rust).
+
+## Semántica
+
+- Un binario empaquetado siempre corre **Lua 5.5**, sin importar el
+  intérprete usado en desarrollo.
+- Los argumentos de línea de comandos llegan a la aplicación como
+  siempre (`arg[1]`, `arg[2]`, …).
+- `LUDI_WATCH` se ignora dentro del bundle — no hay nada en disco que
+  observar. El hot reload es para desarrollo; el binario es para deploy.
+
+<Aside type="note">
+	Solo los archivos `*.lua` bajo el directorio del proyecto se
+	empaquetan. Las dependencias Lua puras deben vivir dentro del proyecto
+	para incluirse; las rocks nativas (C) no están soportadas dentro del
+	binario.
+</Aside>

@@ -5,7 +5,13 @@ edition = "2024"
 
 [lib]
 name = "ludi_core"
-crate-type = ["cdylib"]
+# cdylib is the Lua native module; rlib lets the `ludi` CLI binary reuse
+# the same server/bridge code.
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "ludi"
+required-features = ["cli"]
 
 # No Lua version is enabled by default: luarocks-build-rust-mlua passes the
 # right feature for the Lua that LuaRocks runs under. For a local build,
@@ -13,16 +19,22 @@ crate-type = ["cdylib"]
 #
 #   cargo build --release --features lua54
 #
+# The luaXX features build the native module (mlua module mode, links the
+# host interpreter). The `cli` feature builds the `ludi` binary instead: it
+# vendors a static Lua 5.5, so it is mutually exclusive with the others —
+# pick one per build invocation.
 [features]
-lua51 = ["mlua/lua51"]
-lua52 = ["mlua/lua52"]
-lua53 = ["mlua/lua53"]
-lua54 = ["mlua/lua54"]
-lua55 = ["mlua/lua55"]
-luajit = ["mlua/luajit"]
+module = ["mlua/module"]
+lua51 = ["mlua/lua51", "module"]
+lua52 = ["mlua/lua52", "module"]
+lua53 = ["mlua/lua53", "module"]
+lua54 = ["mlua/lua54", "module"]
+lua55 = ["mlua/lua55", "module"]
+luajit = ["mlua/luajit", "module"]
+cli = ["mlua/lua55", "mlua/vendored"]
 
 [dependencies]
-mlua = { version = "0.11", features = ["module"] }
+mlua = { version = "0.11" }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
 hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }

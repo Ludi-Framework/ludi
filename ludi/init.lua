@@ -183,7 +183,12 @@ function Ludi:listen(port, callback)
     local watch = os.getenv("LUDI_WATCH")
     if watch and watch ~= "" and watch ~= "0" then
         local entrypoint = arg and arg[0]
-        if entrypoint then
+        if core.bundled then
+            -- A binary built by `ludi build` carries its sources inside;
+            -- there is nothing on disk to watch or re-execute.
+            io.stderr:write("ludi: LUDI_WATCH ignored: hot reload is " ..
+                                "unavailable in a bundled binary\n")
+        elseif entrypoint then
             on_reload = reload.handler(
                 entrypoint,
                 function(interceptor) Ludi._capture_listen = interceptor end,

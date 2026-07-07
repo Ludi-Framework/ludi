@@ -13,6 +13,10 @@ dev:
 	cargo build --release --features $(LUA)
 	ln -sf target/release/libludi_core.so ludi_core.so
 
+# The `ludi` CLI (ludi build): vendored static Lua 5.5, no module feature.
+cli:
+	cargo build --release --features cli --bin ludi
+
 run: dev
 	LUA_PATH="./?.lua;./?/init.lua;;" LUA_CPATH="./?.so;;" $(LUA_BIN) examples/hello.lua
 
@@ -22,4 +26,4 @@ test:
 	cargo test --features $(LUA)
 	busted
 
-.PHONY: dev run test
+.PHONY: dev cli run test

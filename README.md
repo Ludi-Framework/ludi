@@ -166,6 +166,39 @@ process; the `listen` callback does not run again.
 Intended for development only: leave `LUDI_WATCH` unset in production
 (the watcher polls the filesystem and reloads on any deploy write).
 
+### Building a binary
+
+Like Go, a Ludi application can ship as a single self-contained
+executable — no Lua, no LuaRocks on the target machine:
+
+```bash
+ludi build                    # entry auto-detected when unambiguous
+ludi build server.lua -o api  # or explicit entry and output name
+./api
+```
+
+Without an explicit entry, `ludi build` accepts the conventional names
+`app.lua`, `server.lua`, `main.lua` and `init.lua` — but only when
+exactly one of them exists. With two or more present there is no safe
+guess (an `app.lua` next to a `server.lua` is usually a module, not the
+runner), so the build asks for the entrypoint instead of guessing wrong.
+
+`ludi build` packs every `*.lua` file under the current directory (same
+skip rules as the watcher) into a copy of the `ludi` runtime: a static
+Lua 5.5, the framework and the application in one file. At run time
+`require` resolves from the bundle; nothing is read from disk. The build
+is instant — no toolchain involved.
+
+The `ludi` CLI is attached to each GitHub release (`ludi-linux-x86_64`,
+`ludi-darwin-arm64`), or build it from source with `make cli`.
+
+Notes:
+
+- A bundled binary always runs Lua 5.5, regardless of the interpreter
+  used in development.
+- `LUDI_WATCH` is ignored inside a bundle (nothing on disk to watch).
+- See [ADR 0005](docs/adr/0005-binary-build.md) for the design.
+
 ## Architecture
 
 ```
