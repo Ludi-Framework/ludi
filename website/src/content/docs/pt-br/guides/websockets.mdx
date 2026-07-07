@@ -77,8 +77,8 @@ end)
 ## Middlewares e o handshake
 
 Middlewares — globais, por rota e via
-[grupos de rotas](/pt-br/guides/route-groups/) — rodam na hora do
-handshake com a assinatura usual `(req, res, next)`. Responder em vez de
+[grupos de rotas](/pt-br/guides/middleware/#middlewares-de-grupo) — rodam
+na hora do handshake com a assinatura usual `(req, res, next)`. Responder em vez de
 chamar `next()` rejeita o handshake com aquela resposta HTTP:
 
 ```lua

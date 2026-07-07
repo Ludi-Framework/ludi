@@ -62,30 +62,9 @@ api:get("/ping", function(req, res)            -- GET /api/ping
 end)
 ```
 
-### Middlewares de grupo
-
-Una lista de [middlewares](/es/guides/middleware/) entre el prefijo y el
-callback se ejecuta antes de cada ruta del grupo; `group:use` añade uno
-para las rutas registradas después de la llamada:
-
-```lua
-app:group("/admin", { auth }, function(admin)
-    admin:get("/stats", handler)               -- auth se ejecuta primero
-end)
-
-local reports = app:group("/reports")
-reports:use(auth)
-reports:get("/daily", handler)
-```
-
-Orden de ejecución: middlewares globales → middlewares del grupo (del más
-externo al más interno) → middlewares de la ruta → handler.
-
-<Aside type="note">
-	Una función sola después del prefijo es siempre el callback. Para pasar
-	un único middleware sin callback, envuélvelo en una tabla —
-	`app:group("/admin", { auth })` — o usa `group:use`.
-</Aside>
+Los grupos también aceptan middlewares, que se ejecutan antes de cada ruta
+del grupo — mira
+[middlewares de grupo](/es/guides/middleware/#middlewares-de-grupo).
 
 ## Rutas sin coincidencia
 
