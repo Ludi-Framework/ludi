@@ -10,11 +10,11 @@ use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::types::{Job, Request};
+use crate::types::{Job, Msg, Request};
 
 const MAX_BODY_BYTES: usize = 1024 * 1024;
 
-pub async fn serve(listener: TcpListener, jobs: mpsc::UnboundedSender<Job>) {
+pub async fn serve(listener: TcpListener, jobs: mpsc::UnboundedSender<Msg>) {
     loop {
         let (stream, _) = match listener.accept().await {
             Ok(conn) => conn,
@@ -38,7 +38,7 @@ pub async fn serve(listener: TcpListener, jobs: mpsc::UnboundedSender<Job>) {
 
 async fn handle(
     req: HyperRequest<Incoming>,
-    jobs: mpsc::UnboundedSender<Job>,
+    jobs: mpsc::UnboundedSender<Msg>,
 ) -> Result<HyperResponse<Full<Bytes>>, hyper::Error> {
     let (parts, body) = req.into_parts();
 
@@ -69,7 +69,7 @@ async fn handle(
 
     let (respond, response_rx) = oneshot::channel();
 
-    if jobs.send(Job { request, respond }).is_err() {
+    if jobs.send(Msg::Job(Job { request, respond })).is_err() {
         return Ok(plain(StatusCode::INTERNAL_SERVER_ERROR, "Server shutting down"));
     }
 
@@ -103,7 +103,7 @@ mod tests {
     use crate::types::Response;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    async fn spawn_test_server() -> (u16, mpsc::UnboundedReceiver<Job>) {
+    async fn spawn_test_server() -> (u16, mpsc::UnboundedReceiver<Msg>) {
         let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let (jobs_tx, jobs_rx) = mpsc::unbounded_channel();
@@ -127,7 +127,7 @@ mod tests {
 
         // Emulates the Lua thread: echoes the parsed request back.
         tokio::spawn(async move {
-            while let Some(job) = jobs_rx.recv().await {
+            while let Some(Msg::Job(job)) = jobs_rx.recv().await {
                 let req = &job.request;
                 let body = format!(
                     "method={};path={};query={};body={}",
@@ -163,7 +163,7 @@ mod tests {
         let (port, mut jobs_rx) = spawn_test_server().await;
 
         tokio::spawn(async move {
-            while let Some(job) = jobs_rx.recv().await {
+            while let Some(Msg::Job(job)) = jobs_rx.recv().await {
                 drop(job.respond);
             }
         });

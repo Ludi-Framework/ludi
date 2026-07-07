@@ -8,9 +8,13 @@ local core = {}
 --- with a raw request table; expects a raw response table back.
 --- `on_listen` runs once after the port is bound, before any request is
 --- served. Raises an error when the port cannot be bound.
+--- When `on_reload` is given, `*.lua` files under the working directory are
+--- watched and the callback runs on the Lua thread, between requests, with
+--- the list of changed paths.
 ---@param port integer
 ---@param on_request fun(raw: ludi.RawRequest): ludi.RawResponse
 ---@param on_listen? fun()
-function core.start_server(port, on_request, on_listen) end
+---@param on_reload? fun(changed: string[])
+function core.start_server(port, on_request, on_listen, on_reload) end
 
 return core

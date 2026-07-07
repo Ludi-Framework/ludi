@@ -79,6 +79,16 @@ dropped and the coroutine is resumed once with a `"request cancelled"`
 error raised from the yield point, so user cleanup (`pcall`,
 to-be-closed variables) runs. See [ADR 0003](adr/0003-coroutines.md).
 
+## Hot reload (development)
+
+With `LUDI_WATCH=1` the native module polls `*.lua` mtimes on a side
+thread and sends reload messages through the same channel as requests, so
+the reload callback runs on the Lua thread, never during a request. The
+Lua side (ludi/reload.lua) clears application modules from
+`package.loaded` and re-executes the entrypoint, intercepting its
+`app:listen()` call to swap the app in place — the port is bound once. A
+failed reload keeps the previous version serving.
+
 ## Planned evolution (in order)
 
 1. ✅ Single VM, stable public API.

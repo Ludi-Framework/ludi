@@ -1,0 +1,46 @@
+---
+title: Hot reload
+description: Reloading the application on file change during development.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+With `LUDI_WATCH=1`, Ludi watches every `*.lua` file under the working
+directory and hot-reloads the application on change — no restart, no
+rebinding the port, in-flight requests are never interrupted.
+
+```bash
+LUDI_WATCH=1 lua app.lua
+```
+
+Edit a route, save, refresh: the change is live.
+
+## How it works
+
+1. A change is detected (new, edited or deleted `.lua` file).
+2. Application modules are dropped from `package.loaded`, so `require`
+   re-reads them. The Lua stdlib and Ludi itself are kept.
+3. The entrypoint (`app.lua`) is re-executed; its `app:listen()` call is
+   intercepted and the new app replaces the old one in place.
+
+The reload runs on the Lua thread, between requests — never in the middle
+of one. A reload that fails (syntax error, error at load time) is logged
+to stderr and the previous version keeps serving until the next change:
+
+```
+ludi: reloading (app.lua changed)
+ludi: reload failed, keeping previous version: app.lua:12: syntax error near ')'
+```
+
+## Semantics
+
+- State living in module locals is reset on reload, like restarting the
+  process.
+- The `listen` callback does not run again — the port is bound once.
+- Files inside hidden directories, `target/`, `lua_modules/` and
+  `node_modules/` are ignored.
+
+<Aside type="caution">
+	Intended for development only: leave `LUDI_WATCH` unset in production —
+	the watcher polls the filesystem and reloads on any deploy write.
+</Aside>

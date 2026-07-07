@@ -79,6 +79,7 @@ export default defineConfig({
 						{ slug: 'guides/request' },
 						{ slug: 'guides/response' },
 						{ slug: 'guides/listening' },
+						{ slug: 'guides/hot-reload' },
 					],
 				},
 				{
