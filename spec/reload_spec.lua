@@ -54,6 +54,16 @@ describe("hot reload", function()
         assert.is_not_nil(package.loaded["string"])
     end)
 
+    it("keeps the previous app when the entrypoint has a syntax error", function()
+        entrypoint = write_entrypoint([[local x = = 1]])
+
+        local swapped
+        make_handler(entrypoint, function(app) swapped = app end)({"app.lua"})
+
+        assert.is_nil(swapped)
+        assert.is_nil(ludi._capture_listen)
+    end)
+
     it("keeps the previous app when the reload errors", function()
         entrypoint = write_entrypoint([[error("boom at load time")]])
 

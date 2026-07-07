@@ -5,7 +5,10 @@
 --- handler clears application modules from `package.loaded` and re-runs the
 --- entrypoint; the `app:listen()` call inside it is intercepted, so the new
 --- app replaces the serving one without rebinding the port. A reload that
---- fails (syntax error, runtime error) keeps the previous version serving.
+--- fails (syntax error, runtime error) keeps the previous version serving
+--- and prints a highlighted source excerpt of the failure (ludi/errfmt.lua).
+
+local errfmt = require("ludi.errfmt")
 
 local reload = {}
 
@@ -31,8 +34,8 @@ end
 ---@return fun(changed: string[])
 function reload.handler(entrypoint, capture, swap)
     return function(changed)
-        io.stderr:write(("ludi: reloading (%s changed)\n"):format(
-                            table.concat(changed, ", ")))
+        io.stderr:write(errfmt.info(("reloading (%s changed)"):format(
+                                        table.concat(changed, ", "))))
 
         for name in pairs(package.loaded) do
             if not is_protected(name) then
@@ -42,16 +45,22 @@ function reload.handler(entrypoint, capture, swap)
 
         local new_app
         capture(function(app) new_app = app end)
-        local ok, err = pcall(dofile, entrypoint)
+        -- loadfile first so a syntax error in the entrypoint itself is
+        -- told apart from an error raised while the chunk runs (which
+        -- includes syntax errors in require()d modules).
+        local chunk, err = loadfile(entrypoint)
+        local ok = false
+        if chunk then ok, err = pcall(chunk) end
         capture(nil)
 
         if not ok then
-            io.stderr:write(("ludi: reload failed, keeping previous version: %s\n"):format(
-                                tostring(err)))
+            io.stderr:write(errfmt.render(err, chunk and "runtime" or "syntax"))
         elseif new_app then
             swap(new_app)
+            io.stderr:write(errfmt.ok("reloaded"))
         else
-            io.stderr:write("ludi: reload never reached app:listen(); keeping previous version\n")
+            io.stderr:write(errfmt.warn(
+                "reload never reached app:listen(); keeping previous version"))
         end
     end
 end
