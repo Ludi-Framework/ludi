@@ -1,11 +1,23 @@
 ---
 /**
- * Starlight `SocialIcons` override: keeps the default social links
- * (GitHub) and prepends the "Buy me a coffee" button.
+ * Starlight `SocialIcons` override: replaces the icon-only defaults
+ * with the labelled pill buttons from the Figma nav — "Buy me a
+ * coffee" and GitHub.
+ * Mobile first: only the GitHub icon on small screens, label from lg up.
  */
-import Default from '@astrojs/starlight/components/SocialIcons.astro';
+import { Icon } from '@astrojs/starlight/components';
 import BuyMeACoffee from './BuyMeACoffee.astro';
+
+const GITHUB_URL = 'https://github.com/Ludi-Framework/ludi';
 ---
 
 <BuyMeACoffee />
-<Default><slot /></Default>
+<a
+	href={GITHUB_URL}
+	target="_blank"
+	rel="noopener noreferrer"
+	class="ludi-pill inline-flex items-center gap-1.5 rounded-full border border-[var(--sl-color-hairline)] bg-[var(--ludi-pill-bg)] px-2.5 py-1.5 text-sm whitespace-nowrap text-[var(--sl-color-white)] no-underline hover:border-[var(--sl-color-accent)] lg:px-3"
+>
+	<Icon name="github" class="text-base" />
+	<span class="hidden lg:inline">GitHub</span>
+</a>
