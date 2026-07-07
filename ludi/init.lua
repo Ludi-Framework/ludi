@@ -6,6 +6,7 @@ local Group = require("ludi.group")
 local Request = require("ludi.request")
 local Response = require("ludi.response")
 local run_chain = require("ludi.middleware")
+local ws = require("ludi.ws")
 
 ---@alias ludi.Handler fun(req: ludi.Request, res: ludi.Response)
 ---@alias ludi.Middleware fun(req: ludi.Request, res: ludi.Response, next: fun())
@@ -36,6 +37,7 @@ local run_chain = require("ludi.middleware")
 
 ---@class Ludi
 ---@field routes ludi.Route[]
+---@field ws_routes ludi.Route[]
 ---@field middlewares ludi.Middleware[]
 ---@field get ludi.RouteMethod
 ---@field post ludi.RouteMethod
@@ -54,7 +56,14 @@ local DEV = watch_env ~= nil and watch_env ~= "" and watch_env ~= "0"
 
 ---@return Ludi
 function Ludi.new()
-    return setmetatable({routes = {}, middlewares = {}}, Ludi)
+    return setmetatable({routes = {}, ws_routes = {}, middlewares = {}}, Ludi)
+end
+
+local function toMiddlewareList(options)
+    if options == nil then return {} end
+    if type(options) == "function" then return {options} end
+    if type(options) == "table" then return options end
+    error("Route middlewares must be function or table of functions")
 end
 
 --- Registers a global middleware, run before every route.
@@ -95,17 +104,7 @@ end
 ---@param handler ludi.Handler
 function Ludi:addRoute(method, path, options, handler)
     assert(type(handler) == "function", "Handler must be a function")
-    local route_middlewares = {}
-
-    if options then
-        if type(options) == "function" then
-            route_middlewares = {options}
-        elseif type(options) == "table" then
-            route_middlewares = options
-        else
-            error("Route middlewares must be function or table of functions")
-        end
-    end
+    local route_middlewares = toMiddlewareList(options)
 
     table.insert(self.routes, {
         method = method,
@@ -129,6 +128,43 @@ local function makeMethod(method)
                     method:lower(), method:lower()))
         end
     end
+end
+
+--- Registers a WebSocket route. The handler runs once per connection,
+--- right after the handshake completes:
+---
+---     app:ws("/chat", function(conn, req)
+---         conn:on("message", function(data) conn:send(data) end)
+---     end)
+---
+--- Middlewares (global and per-route) run at handshake time with the
+--- usual `(req, res, next)` signature: responding instead of calling
+--- `next()` rejects the handshake with that HTTP response.
+---@param path string path pattern, e.g. "/chat/:room"
+---@param middlewares? ludi.Middleware|ludi.Middleware[]
+---@param handler ludi.WsHandler
+---@overload fun(self: Ludi, path: string, handler: ludi.WsHandler)
+function Ludi:ws(path, middlewares, handler)
+    if handler == nil then
+        self:addWsRoute(path, nil, middlewares --[[@as ludi.WsHandler]])
+    else
+        self:addWsRoute(path, middlewares, handler)
+    end
+end
+
+--- Registers a WebSocket route. Prefer `ws(path, ...)`.
+---@param path string
+---@param options? ludi.Middleware|ludi.Middleware[]
+---@param handler ludi.WsHandler
+function Ludi:addWsRoute(path, options, handler)
+    assert(type(handler) == "function", "Handler must be a function")
+    table.insert(self.ws_routes, {
+        method = "WS",
+        path = path,
+        segments = Router.compile(path),
+        middlewares = toMiddlewareList(options),
+        handler = handler
+    })
 end
 
 Ludi.get = makeMethod("GET")
@@ -194,6 +230,63 @@ function Ludi:_dispatch(raw)
     return res:build()
 end
 
+--- Entry point called by ludi_core for every WebSocket handshake.
+--- Matches the ws routes and runs the middleware chain; the handshake is
+--- accepted only when the whole chain calls `next()`. On acceptance the
+--- handler is parked in the ws registry until the upgrade completes.
+---@param id integer connection id assigned by ludi_core
+---@param raw ludi.RawRequest
+---@return table decision `{ accept = true }` or a raw response table
+function Ludi:_ws_upgrade(id, raw)
+    local route, params = Router.match(self.ws_routes, "WS", raw.path)
+
+    if not route then
+        return {
+            status = 404,
+            headers = {["Content-Type"] = "application/json"},
+            body = '{"error":"Not Found"}'
+        }
+    end
+
+    local req = Request.new(raw, params)
+    local res = Response.new()
+    local accepted = false
+
+    local co = coroutine.create(function()
+        run_chain(req, res, self.middlewares, route.middlewares,
+                  function() accepted = true end)
+    end)
+
+    local ok, err = coroutine.resume(co)
+
+    if ok and coroutine.status(co) == "suspended" then
+        ok = false
+        err = "coroutine yielded outside an async context"
+    end
+
+    if coroutine.close then coroutine.close(co) end
+
+    if not ok then
+        if DEV then
+            io.stderr:write(errfmt.render(err, "handler",
+                ("WS %s handshake rejected with 500"):format(raw.path)))
+        else
+            io.stderr:write(("ludi: middleware error on WS %s: %s\n"):format(
+                                raw.path, tostring(err)))
+        end
+        return {
+            status = 500,
+            headers = {["Content-Type"] = "application/json"},
+            body = '{"error":"Internal Server Error"}'
+        }
+    end
+
+    if not accepted then return res:build() end
+
+    ws.register(id, route.handler, req)
+    return {accept = true}
+end
+
 --- Starts the HTTP server and blocks serving requests.
 --- The callback runs once, right after the port is bound and before any
 --- request is served — the place for the application's own startup log.
@@ -236,7 +329,13 @@ function Ludi:listen(port, callback)
 
     core.start_server(port or 3000,
                       function(raw) return current:_dispatch(raw) end,
-                      callback, on_reload)
+                      callback, on_reload, {
+                          upgrade = function(id, raw)
+                              return current:_ws_upgrade(id, raw)
+                          end,
+                          open = ws.open,
+                          event = ws.event
+                      })
 end
 
 return Ludi
