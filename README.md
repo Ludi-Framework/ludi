@@ -2,9 +2,9 @@
 
 An Express-style web framework for Lua, powered by Rust.
 
-Routing, middlewares and handlers are plain Lua. Underneath, a native module
-written in Rust ([hyper](https://hyper.rs) + [tokio](https://tokio.rs)) does
-the HTTP heavy lifting. No OpenResty, no nginx, no separate runtime — just
+Routing, middlewares, handlers and WebSockets are plain Lua. Underneath, a
+native module written in Rust ([hyper](https://hyper.rs) +
+[tokio](https://tokio.rs)) does the HTTP and WebSocket heavy lifting. No OpenResty, no nginx, no separate runtime — just
 `require("ludi")` and run your app with any Lua interpreter.
 
 ```lua
@@ -138,6 +138,47 @@ reports:get("/daily", daily)
 A lone function after the prefix is always the callback — wrap a single
 middleware in a table (`{ auth }`) or use `group:use`.
 
+### WebSockets
+
+WebSockets are built in — no extra library, same port as HTTP. A ws route
+takes a handler that runs once per connection, right after the handshake:
+
+```lua
+app:ws("/chat/:room", function(conn, req)
+    print("joined " .. req.params.room)
+
+    conn:on("message", function(data, binary)
+        conn:send("echo: " .. data)
+    end)
+
+    conn:on("close", function(code, reason)
+        print("left " .. req.params.room)
+    end)
+end)
+```
+
+The connection object:
+
+| Method | Description |
+| --- | --- |
+| `conn:on(event, fn)` | Listeners for `"message"` `(data, binary)`, `"close"` `(code, reason)` and `"error"` `(message)` |
+| `conn:send(data, binary?)` | Sends a text frame (or binary with `true`); returns `false` once closed |
+| `conn:close(code?, reason?)` | Starts closing; `code` defaults to `1000` |
+
+Middlewares — global, per-route and via groups — run at handshake time
+with the usual `(req, res, next)` signature. Responding instead of
+calling `next()` rejects the handshake with that HTTP response:
+
+```lua
+app:ws("/private", { auth }, function(conn) ... end)
+-- without the Authorization header the client gets the 401, no upgrade
+```
+
+Requests to a ws path without the upgrade headers fall through to the
+regular router (and its 404). Handler errors close the connection with
+`1011` and are logged like HTTP handler errors. Messages are capped at
+1 MB, like HTTP bodies.
+
 ### Request
 
 | Field / method | Description |
@@ -250,8 +291,9 @@ Notes:
                     └────────────────────────────┘
 ```
 
-- Rust is transport only: it parses HTTP, enforces limits, and forwards each
-  request through a channel. It knows nothing about routes.
+- Rust is transport only: it parses HTTP, speaks the WebSocket protocol,
+  enforces limits, and forwards each request and frame through a channel.
+  It knows nothing about routes.
 - All Lua runs on the single thread that called `app:listen()`. Worker
   threads never touch the interpreter, so there are no cross-thread
   callbacks and no FFI.
