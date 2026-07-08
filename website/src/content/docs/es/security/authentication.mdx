@@ -1,0 +1,190 @@
+---
+title: Autenticación
+description: Inicio de sesión con contraseña y rutas protegidas con JWT en una aplicación Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+La autenticación responde una pregunta en cada petición: *¿quién llama?*
+El flujo clásico — y el que construye esta guía — es: el cliente se
+autentica con correo y contraseña; el servidor verifica las credenciales
+y emite un **JWT** (JSON Web Token); las peticiones siguientes envían
+ese token como bearer token en la cabecera `Authorization`, y un
+middleware rechaza cualquier petición sin un token válido.
+
+Dos proyectos hermanos cubren la criptografía para que el código de la
+aplicación quede pequeño:
+
+```bash
+luarocks install bcryptlua      # hashing de contraseñas
+luarocks install jsonwebtoken   # firmar y verificar JWTs
+```
+
+[bcryptlua](https://github.com/Ludi-Framework/bcryptlua) se cubre en la
+[guía de hashing](/es/security/hashing/);
+[jsonwebtoken](https://github.com/Ludi-Framework/jsonwebtoken) firma,
+verifica y decodifica tokens en Lua puro — sin OpenSSL, nada que
+compilar.
+
+## Qué es un JWT
+
+Un token son tres partes en base64url — cabecera, claims, firma —
+firmadas con un secreto que solo el servidor conoce:
+
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MiIsImV4cCI6...}.SflKxw...
+```
+
+Las **claims** son datos simples sobre quien llama (`sub` — el sujeto,
+`exp` — la expiración). La **firma** es lo que las hace confiables: un
+cliente puede leer su token, pero cualquier cambio rompe la firma, y
+solo el servidor produce una válida.
+
+<Aside type="caution">
+	El payload está codificado, **no cifrado** — cualquiera con el token
+	puede leer sus claims. Pon identificadores ahí, nunca contraseñas ni
+	otros secretos.
+</Aside>
+
+## El endpoint de inicio de sesión
+
+Verifica las credenciales con bcrypt y emite un token. Las claims se
+firman tal como llegan — define el `exp` tú mismo, o el token nunca
+expira:
+
+```lua
+local ludi = require("ludi")
+local bcrypt = require("bcryptlua")
+local jwt = require("jsonwebtoken")
+
+local SECRET = os.getenv("JWT_SECRET")
+
+local app = ludi.new()
+
+app:post("/auth/login", function(req, res)
+    local body = req:json()
+    local user = find_user(body.email)
+
+    if not user or not bcrypt.verify(body.password, user.password_hash) then
+        res:status(401):json({ error = "Invalid credentials" })
+        return
+    end
+
+    local token = jwt.sign({
+        sub = tostring(user.id),
+        exp = os.time() + 3600, -- válido por una hora
+    }, SECRET)
+
+    res:json({ access_token = token })
+end)
+```
+
+<Aside type="note">
+	Mantén el secreto fuera del código fuente — una variable de entorno es
+	el lugar habitual. Quien lo tenga puede emitir tokens para cualquier
+	usuario; trátalo como una contraseña de base de datos.
+</Aside>
+
+Probándolo:
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "maria@example.com", "password": "guess"}'
+# {"access_token":"eyJhbGciOiJIUzI1NiIs..."}
+```
+
+## El middleware de autenticación
+
+Donde NestJS usa un guard, Ludi usa un
+[middleware](/es/guides/middleware/): lee el bearer token, verifícalo y
+adjunta las claims a la petición. No llamar a `next()` es lo que
+rechaza la petición:
+
+```lua
+local function auth(req, res, next)
+    local header = req.headers["authorization"] or ""
+    local token = header:match("^Bearer (.+)$")
+
+    local claims = token and jwt.verify(token, SECRET)
+    if not claims then
+        res:status(401):json({ error = "Unauthorized" })
+        return
+    end
+
+    req.user = claims
+    next()
+end
+```
+
+`jwt.verify` comprueba la firma y las claims de tiempo (`exp`, `nbf`) y
+devuelve la tabla de claims — o `nil` y una tabla de error como
+`{ code = "expired" }`. Un token falsificado, alterado o expirado es
+entrada normal de esta ruta, no una excepción, así que nada necesita
+`pcall`.
+
+<Aside type="tip">
+	Los relojes de máquinas distintas se desvían. Si tokens válidos se
+	rechazan justo cerca de su expiración, pasa una tolerancia:
+	`jwt.verify(token, SECRET, { leeway = 30 })`.
+</Aside>
+
+## Protegiendo rutas
+
+Adjunta el middleware a una ruta, o a un
+[grupo](/es/guides/routing/#grupos-de-rutas) completo:
+
+```lua
+app:get("/profile", auth, function(req, res)
+    res:json({ user_id = req.user.sub })
+end)
+
+app:group("/api", { auth }, function(api)
+    api:get("/orders", list_orders)   -- auth corre primero
+    api:post("/orders", create_order)
+end)
+```
+
+```bash
+curl http://localhost:3000/profile
+# {"error":"Unauthorized"}
+
+curl http://localhost:3000/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..."
+# {"user_id":"42"}
+```
+
+## Autorización: comprobando roles
+
+La autenticación dice quién llama; la **autorización** dice qué puede
+hacer. Con `req.user` presente, comprobar un rol es una factory de
+middleware apilada después de `auth`:
+
+```lua
+local function role(name)
+    return function(req, res, next)
+        local roles = req.user.roles or {}
+        for _, r in ipairs(roles) do
+            if r == name then
+                return next()
+            end
+        end
+        res:status(403):json({ error = "Forbidden" })
+    end
+end
+
+app:delete("/posts/:id", { auth, role("admin") }, function(req, res)
+    -- solo admins llegan a este handler
+end)
+```
+
+Para que los roles estén en `req.user`, inclúyelos en el token al
+firmar: `jwt.sign({ sub = ..., roles = user.roles, exp = ... }, SECRET)`.
+
+<Aside type="note">
+	jsonwebtoken implementa los algoritmos HMAC (HS256, HS384, HS512): un
+	secreto firma y verifica, que es exactamente la forma de los tokens que
+	un servidor emite para sí mismo. Si un tercero debe verificar tus
+	tokens sin poder emitirlos, necesitas un algoritmo asimétrico (RS256) y
+	un binding nativo de criptografía.
+</Aside>

@@ -94,7 +94,10 @@ export default defineConfig({
 				{
 					label: 'Security',
 					translations: { es: 'Seguridad', 'pt-BR': 'Segurança' },
-					items: [{ slug: 'security/hashing' }],
+					items: [
+						{ slug: 'security/authentication' },
+						{ slug: 'security/hashing' },
+					],
 				},
 				{
 					label: 'Advanced',
