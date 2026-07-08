@@ -1,0 +1,105 @@
+---
+title: Hashing
+description: Password hashing with bcrypt in a Ludi application.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Hashing turns a value into a fixed-size string that cannot be reversed.
+That is what passwords need: unlike encryption, there is no key that
+turns the stored value back into the password — at login you hash the
+attempt and compare.
+
+For passwords the hash must also be *slow*. General-purpose hashes
+(SHA-256, MD5) are built for speed, which lets an attacker try billions
+of guesses per second against a leaked database. **bcrypt** is designed
+the other way around: each hash costs a configurable amount of work, and
+every password gets its own random salt, so equal passwords produce
+different hashes.
+
+Ludi's sibling project [bcryptlua](https://github.com/Ludi-Framework/bcryptlua)
+provides bcrypt as a native module (Rust core), for Ludi or any other
+Lua application:
+
+```bash
+luarocks install bcryptlua
+```
+
+## Hashing a password
+
+`bcrypt.hash` generates a random salt (from the OS CSPRNG) and returns a
+standard 60-character `$2b$` hash — the only thing you store:
+
+```lua
+local ludi = require("ludi")
+local bcrypt = require("bcryptlua")
+
+local app = ludi.new()
+
+app:post("/users", function(req, res)
+    local body = req:json()
+
+    local hash = bcrypt.hash(body.password)
+    -- store `hash` next to the user; never store the password
+
+    res:status(201):json({ ok = true })
+end)
+```
+
+The second argument is the **cost** (default `12`): the log2 of the
+number of rounds, so each `+1` doubles the work. Pick the highest value
+your login latency budget tolerates — around 200 ms per hash is a
+common target:
+
+```lua
+bcrypt.hash(body.password, 14)  -- slower, stronger
+```
+
+<Aside type="caution">
+	bcrypt reads at most **72 bytes** of the password; `bcrypt.hash` raises
+	an error beyond that instead of silently truncating. Enforce a length
+	limit in your signup validation.
+</Aside>
+
+## Verifying a password
+
+`bcrypt.verify` re-hashes the attempt with the salt and cost stored
+inside the hash and compares in constant time:
+
+```lua
+app:post("/login", function(req, res)
+    local body = req:json()
+    local user = find_user(body.email)
+
+    if user and bcrypt.verify(body.password, user.password_hash) then
+        res:json({ token = issue_token(user) })
+    else
+        res:status(401):json({ error = "Invalid credentials" })
+    end
+end)
+```
+
+A wrong password and a malformed hash both return `false` — on purpose,
+so a login route cannot leak which accounts exist.
+
+## Upgrading old hashes
+
+Hardware gets faster; the cost that was right years ago is weak today.
+`bcrypt.cost` reads the cost stored in a hash, which enables the
+rehash-on-login pattern — upgrading each user the moment they
+authenticate:
+
+```lua
+if bcrypt.verify(body.password, user.password_hash) then
+    if bcrypt.cost(user.password_hash) < 12 then
+        update_password_hash(user, bcrypt.hash(body.password))
+    end
+    -- logged in
+end
+```
+
+<Aside type="note">
+	Hashes are interchangeable across bcrypt implementations: `verify` also
+	accepts `$2a$`, `$2x$` and `$2y$` hashes, so a password database written
+	by PHP, Python or Node keeps working as-is.
+</Aside>

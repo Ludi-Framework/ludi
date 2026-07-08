@@ -1,0 +1,105 @@
+---
+title: Hashing
+description: Hashing de senhas com bcrypt em uma aplicação Ludi.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Hashing transforma um valor em uma string de tamanho fixo que não pode
+ser revertida. É disso que senhas precisam: diferente da criptografia,
+não existe chave que transforme o valor armazenado de volta na senha —
+no login você faz o hash da tentativa e compara.
+
+Para senhas o hash também precisa ser *lento*. Hashes de propósito geral
+(SHA-256, MD5) são feitos para velocidade, o que permite a um atacante
+testar bilhões de palpites por segundo contra um banco vazado. O
+**bcrypt** é desenhado ao contrário: cada hash custa uma quantidade
+configurável de trabalho, e cada senha ganha seu próprio salt aleatório,
+então senhas iguais produzem hashes diferentes.
+
+O projeto irmão do Ludi, [bcryptlua](https://github.com/Ludi-Framework/bcryptlua),
+fornece bcrypt como módulo nativo (núcleo em Rust), para Ludi ou
+qualquer outra aplicação Lua:
+
+```bash
+luarocks install bcryptlua
+```
+
+## Fazendo o hash de uma senha
+
+`bcrypt.hash` gera um salt aleatório (do CSPRNG do sistema) e retorna um
+hash `$2b$` padrão de 60 caracteres — a única coisa que você armazena:
+
+```lua
+local ludi = require("ludi")
+local bcrypt = require("bcryptlua")
+
+local app = ludi.new()
+
+app:post("/users", function(req, res)
+    local body = req:json()
+
+    local hash = bcrypt.hash(body.password)
+    -- armazene `hash` junto do usuário; nunca armazene a senha
+
+    res:status(201):json({ ok = true })
+end)
+```
+
+O segundo argumento é o **cost** (padrão `12`): o log2 do número de
+rounds, então cada `+1` dobra o trabalho. Escolha o maior valor que o
+seu orçamento de latência de login tolerar — cerca de 200 ms por hash é
+um alvo comum:
+
+```lua
+bcrypt.hash(body.password, 14)  -- mais lento, mais forte
+```
+
+<Aside type="caution">
+	O bcrypt lê no máximo **72 bytes** da senha; `bcrypt.hash` lança um erro
+	acima disso em vez de truncar silenciosamente. Imponha um limite de
+	tamanho na validação do cadastro.
+</Aside>
+
+## Verificando uma senha
+
+`bcrypt.verify` refaz o hash da tentativa com o salt e o cost guardados
+dentro do hash e compara em tempo constante:
+
+```lua
+app:post("/login", function(req, res)
+    local body = req:json()
+    local user = find_user(body.email)
+
+    if user and bcrypt.verify(body.password, user.password_hash) then
+        res:json({ token = issue_token(user) })
+    else
+        res:status(401):json({ error = "Invalid credentials" })
+    end
+end)
+```
+
+Senha errada e hash malformado retornam `false` — de propósito, para
+que uma rota de login não vaze quais contas existem.
+
+## Atualizando hashes antigos
+
+Hardware fica mais rápido; o cost que era certo anos atrás é fraco hoje.
+`bcrypt.cost` lê o cost guardado em um hash, o que habilita o padrão
+rehash-on-login — atualizar cada usuário no momento em que ele
+autentica:
+
+```lua
+if bcrypt.verify(body.password, user.password_hash) then
+    if bcrypt.cost(user.password_hash) < 12 then
+        update_password_hash(user, bcrypt.hash(body.password))
+    end
+    -- logado
+end
+```
+
+<Aside type="note">
+	Hashes são intercambiáveis entre implementações de bcrypt: `verify`
+	também aceita hashes `$2a$`, `$2x$` e `$2y$`, então um banco de senhas
+	escrito por PHP, Python ou Node continua funcionando como está.
+</Aside>
