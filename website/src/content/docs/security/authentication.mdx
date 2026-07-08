@@ -96,7 +96,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 ## The auth middleware
 
-Where NestJS reaches for a guard, Ludi uses a
+Protecting routes is a job for a
 [middleware](/guides/middleware/): read the bearer token, verify it,
 and attach the claims to the request. Not calling `next()` is what
 rejects the request:

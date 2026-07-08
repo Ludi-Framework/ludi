@@ -96,7 +96,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 ## El middleware de autenticación
 
-Donde NestJS usa un guard, Ludi usa un
+Proteger rutas es trabajo de un
 [middleware](/es/guides/middleware/): lee el bearer token, verifícalo y
 adjunta las claims a la petición. No llamar a `next()` es lo que
 rechaza la petición:
