@@ -22,7 +22,9 @@ end
 
 local function split(path)
     local parts = {}
-    for segment in path:gmatch("[^/]+") do table.insert(parts, segment) end
+    for segment in path:gmatch("[^/]+") do
+        table.insert(parts, segment)
+    end
     return parts
 end
 
@@ -49,7 +51,9 @@ function Router.match(routes, method, path)
                 end
             end
 
-            if matched then return route, params end
+            if matched then
+                return route, params
+            end
         end
     end
 

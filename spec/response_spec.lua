@@ -2,7 +2,7 @@ local Response = require("ludi.response")
 
 describe("response", function()
     it("chains status and json", function()
-        local built = Response.new():status(202):json({ok = true}):build()
+        local built = Response.new():status(202):json({ ok = true }):build()
 
         assert.are.equal(202, built.status)
         assert.are.equal("application/json", built.headers["Content-Type"])
@@ -17,8 +17,7 @@ describe("response", function()
     end)
 
     it("keeps a custom Content-Type over the send default", function()
-        local built = Response.new():header("Content-Type", "text/html")
-                          :send("<p>hi</p>"):build()
+        local built = Response.new():header("Content-Type", "text/html"):send("<p>hi</p>"):build()
 
         assert.are.equal("text/html", built.headers["Content-Type"])
     end)

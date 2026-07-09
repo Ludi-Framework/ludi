@@ -9,7 +9,7 @@ Response.__index = Response
 
 ---@return ludi.Response
 function Response.new()
-    return setmetatable({status_code = 200, body = "", headers = {}}, Response)
+    return setmetatable({ status_code = 200, body = "", headers = {} }, Response)
 end
 
 --- Sets the HTTP status code.
@@ -36,12 +36,10 @@ end
 function Response:send(data)
     if type(data) == "table" then
         self.body = json.encode(data)
-        self.headers["Content-Type"] = self.headers["Content-Type"] or
-                                           "application/json"
+        self.headers["Content-Type"] = self.headers["Content-Type"] or "application/json"
     elseif type(data) == "string" then
         self.body = data
-        self.headers["Content-Type"] = self.headers["Content-Type"] or
-                                           "text/plain"
+        self.headers["Content-Type"] = self.headers["Content-Type"] or "text/plain"
     end
 
     return self
@@ -50,7 +48,9 @@ end
 --- Sends data as JSON (alias for send).
 ---@param data table|string
 ---@return ludi.Response self
-function Response:json(data) return self:send(data) end
+function Response:json(data)
+    return self:send(data)
+end
 
 --- Plain table handed back to ludi_core.
 ---@return ludi.RawResponse
@@ -58,7 +58,7 @@ function Response:build()
     return {
         status = self.status_code,
         headers = self.headers,
-        body = self.body
+        body = self.body,
     }
 end
 

@@ -13,13 +13,13 @@ describe("app", function()
     it("routes a request and builds the response", function()
         local app = ludi.new()
         app:get("/users/:id", function(req, res)
-            res:status(200):json({id = req.params.id, q = req.query.x})
+            res:status(200):json({ id = req.params.id, q = req.query.x })
         end)
 
         local out = dispatch(app, {
             method = "GET",
             path = "/users/42",
-            query = "x=9"
+            query = "x=9",
         })
 
         assert.are.equal(200, out.status)
@@ -29,16 +29,18 @@ describe("app", function()
     end)
 
     it("returns 404 for an unknown route", function()
-        local out = dispatch(ludi.new(), {method = "GET", path = "/nope"})
+        local out = dispatch(ludi.new(), { method = "GET", path = "/nope" })
 
         assert.are.equal(404, out.status)
     end)
 
     it("returns 500 when the handler errors", function()
         local app = ludi.new()
-        app:get("/boom", function() error("kaboom") end)
+        app:get("/boom", function()
+            error("kaboom")
+        end)
 
-        local out = dispatch(app, {method = "GET", path = "/boom"})
+        local out = dispatch(app, { method = "GET", path = "/boom" })
 
         assert.are.equal(500, out.status)
     end)
@@ -59,9 +61,9 @@ describe("app", function()
             res:send("ok")
         end)
 
-        dispatch(app, {method = "GET", path = "/mw"})
+        dispatch(app, { method = "GET", path = "/mw" })
 
-        assert.are.same({"global", "route", "handler"}, seen)
+        assert.are.same({ "global", "route", "handler" }, seen)
     end)
 
     it("runs the handler inside a coroutine", function()
@@ -72,7 +74,7 @@ describe("app", function()
             res:send("ok")
         end)
 
-        local out = dispatch(app, {method = "GET", path = "/co"})
+        local out = dispatch(app, { method = "GET", path = "/co" })
 
         assert.are.equal(200, out.status)
         assert.is_true(yieldable)
@@ -85,7 +87,7 @@ describe("app", function()
             res:send("never reached")
         end)
 
-        local out = dispatch(app, {method = "GET", path = "/yield"})
+        local out = dispatch(app, { method = "GET", path = "/yield" })
 
         assert.are.equal(500, out.status)
     end)
@@ -100,7 +102,9 @@ describe("app", function()
 
     it("runs the listen callback once the server is bound", function()
         local called = false
-        ludi.new():listen(8080, function() called = true end)
+        ludi.new():listen(8080, function()
+            called = true
+        end)
 
         assert.is_true(called)
         assert.are.equal("function", type(core_stub.started.on_listen))

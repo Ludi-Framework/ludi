@@ -21,7 +21,9 @@ local function run_chain(req, res, global_middlewares, route_middlewares, handle
             handler()
             return
         end
-        chain[i](req, res, function() step(i + 1) end)
+        chain[i](req, res, function()
+            step(i + 1)
+        end)
     end
 
     step(1)

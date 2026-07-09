@@ -2,7 +2,7 @@ local json = {}
 
 local function escape_str(s)
     s = s:gsub("\\", "\\\\")
-    s = s:gsub("\"", "\\\"")
+    s = s:gsub('"', '\\"')
     s = s:gsub("\b", "\\b")
     s = s:gsub("\f", "\\f")
     s = s:gsub("\n", "\\n")
@@ -14,15 +14,15 @@ end
 -- utf8 is only available on Lua 5.3+; on LuaJIT/5.1 fall back to a plain
 -- codepoint-to-utf8 encoder.
 local function codepoint_to_utf8(code)
-    if utf8 and utf8.char then return utf8.char(code) end
+    if utf8 and utf8.char then
+        return utf8.char(code)
+    end
     if code < 0x80 then
         return string.char(code)
     elseif code < 0x800 then
         return string.char(0xC0 + math.floor(code / 0x40), 0x80 + code % 0x40)
     else
-        return string.char(0xE0 + math.floor(code / 0x1000),
-                           0x80 + math.floor(code / 0x40) % 0x40,
-                           0x80 + code % 0x40)
+        return string.char(0xE0 + math.floor(code / 0x1000), 0x80 + math.floor(code / 0x40) % 0x40, 0x80 + code % 0x40)
     end
 end
 
@@ -44,8 +44,7 @@ local function encode_value(v)
             return "[" .. table.concat(res, ",") .. "]"
         else
             for k, val in pairs(v) do
-                table.insert(res,
-                             '"' .. escape_str(k) .. '":' .. encode_value(val))
+                table.insert(res, '"' .. escape_str(k) .. '":' .. encode_value(val))
             end
             return "{" .. table.concat(res, ",") .. "}"
         end
@@ -56,20 +55,26 @@ end
 --- Encodes a Lua value as a JSON string.
 ---@param tbl any
 ---@return string
-function json.encode(tbl) return encode_value(tbl) end
+function json.encode(tbl)
+    return encode_value(tbl)
+end
 
 --- Decodes a JSON string into a Lua value. Raises on invalid JSON.
 ---@param str string
 ---@return any
 function json.decode(str)
-    if type(str) ~= "string" or str == "" then return {} end
+    if type(str) ~= "string" or str == "" then
+        return {}
+    end
 
     local idx = 1
 
     local parse_object, parse_array, parse_value, parse_string, parse_number
 
     local function skip_ws()
-        while str:sub(idx, idx):match("%s") do idx = idx + 1 end
+        while str:sub(idx, idx):match("%s") do
+            idx = idx + 1
+        end
     end
 
     parse_value = function()
@@ -104,22 +109,22 @@ function json.decode(str)
                 idx = idx + 1
                 break
             end
-            if c == '\\' then
+            if c == "\\" then
                 local next_c = str:sub(idx + 1, idx + 1)
-                if next_c == 'u' then
+                if next_c == "u" then
                     local hex = str:sub(idx + 2, idx + 5)
                     res = res .. codepoint_to_utf8(tonumber(hex, 16))
                     idx = idx + 6
                 else
                     local escapes = {
                         ['"'] = '"',
-                        ['\\'] = '\\',
-                        ['/'] = '/',
-                        b = '\b',
-                        f = '\f',
-                        n = '\n',
-                        r = '\r',
-                        t = '\t'
+                        ["\\"] = "\\",
+                        ["/"] = "/",
+                        b = "\b",
+                        f = "\f",
+                        n = "\n",
+                        r = "\r",
+                        t = "\t",
                     }
                     res = res .. (escapes[next_c] or next_c)
                     idx = idx + 2
@@ -136,7 +141,9 @@ function json.decode(str)
         local start = idx
         -- '-' must be last inside the set, otherwise '+-.' reads as the
         -- ASCII range 43-46 which accidentally includes ','
-        while str:sub(idx, idx):match("[0-9eE.+-]") do idx = idx + 1 end
+        while str:sub(idx, idx):match("[0-9eE.+-]") do
+            idx = idx + 1
+        end
         return tonumber(str:sub(start, idx - 1))
     end
 

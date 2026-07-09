@@ -12,7 +12,9 @@ local errfmt = {}
 local CONTEXT = 2 -- source lines shown above and below the offending one
 
 local function colors_enabled()
-    if os.getenv("NO_COLOR") then return false end
+    if os.getenv("NO_COLOR") then
+        return false
+    end
     local term = os.getenv("TERM")
     return term ~= nil and term ~= "" and term ~= "dumb"
 end
@@ -20,7 +22,9 @@ end
 errfmt.color = colors_enabled()
 
 local function paint(code, text)
-    if not errfmt.color then return text end
+    if not errfmt.color then
+        return text
+    end
     return "\27[" .. code .. "m" .. text .. "\27[0m"
 end
 
@@ -37,16 +41,17 @@ function errfmt.parse(msg)
     if not file then
         file, line, rest = msg:match("^([^\n:]+):(%d+): ([^\n]*)")
     end
-    if not file then return nil end
-    return {file = file, line = tonumber(line), message = rest}
+    if not file then
+        return nil
+    end
+    return { file = file, line = tonumber(line), message = rest }
 end
 
 --- The token the parser choked on, from `near 'x'` / `near <eof>`.
 ---@param message string
 ---@return string|nil
 function errfmt.near_token(message)
-    return message:match("near '([^']+)'")
-        or (message:find("near <eof>", 1, true) and "<eof>" or nil)
+    return message:match("near '([^']+)'") or (message:find("near <eof>", 1, true) and "<eof>" or nil)
 end
 
 -- Last occurrence of the token in the line: for repeated tokens (e.g. a
@@ -60,19 +65,27 @@ local function find_token(text, token)
     local last_s, last_e, init = nil, nil, 1
     while true do
         local s, e = text:find(pattern, init)
-        if not s then return last_s, last_e end
+        if not s then
+            return last_s, last_e
+        end
         last_s, last_e, init = s, e, e + 1
     end
 end
 
 local function read_lines(path, from, to)
     local file = io.open(path, "r")
-    if not file then return nil end
+    if not file then
+        return nil
+    end
     local lines, n = {}, 0
     for text in file:lines() do
         n = n + 1
-        if n > to then break end
-        if n >= from then lines[n] = text end
+        if n > to then
+            break
+        end
+        if n >= from then
+            lines[n] = text
+        end
     end
     file:close()
     return lines
@@ -86,9 +99,13 @@ function errfmt.frame(loc)
     local first = math.max(1, loc.line - CONTEXT)
     local last = loc.line + CONTEXT
     local lines = read_lines(loc.file, first, last)
-    if not lines or lines[loc.line] == nil then return nil end
+    if not lines or lines[loc.line] == nil then
+        return nil
+    end
 
-    while lines[last] == nil do last = last - 1 end
+    while lines[last] == nil do
+        last = last - 1
+    end
     local width = #tostring(last)
 
     local out = {}
@@ -97,8 +114,11 @@ function errfmt.frame(loc)
         local num = ("%" .. width .. "d"):format(n)
         if n == loc.line then
             out[#out + 1] = ("  %s %s %s %s\n"):format(
-                paint(RED, "▶"), paint(RED, num), paint(DIM, "│"),
-                paint(BOLD, expanded))
+                paint(RED, "▶"),
+                paint(RED, num),
+                paint(DIM, "│"),
+                paint(BOLD, expanded)
+            )
 
             local token = errfmt.near_token(loc.message)
             if token then
@@ -110,13 +130,15 @@ function errfmt.frame(loc)
                 end
                 if s then
                     out[#out + 1] = ("    %s %s %s%s\n"):format(
-                        (" "):rep(width), paint(DIM, "│"),
-                        (" "):rep(s - 1), paint(RED, ("^"):rep(e - s + 1)))
+                        (" "):rep(width),
+                        paint(DIM, "│"),
+                        (" "):rep(s - 1),
+                        paint(RED, ("^"):rep(e - s + 1))
+                    )
                 end
             end
         else
-            out[#out + 1] = ("    %s %s %s\n"):format(
-                paint(DIM, num), paint(DIM, "│"), paint(DIM, expanded))
+            out[#out + 1] = ("    %s %s %s\n"):format(paint(DIM, num), paint(DIM, "│"), paint(DIM, expanded))
         end
     end
     return table.concat(out)
@@ -133,7 +155,7 @@ local KINDS = {
         note = "keeping previous version",
         hint = "Fix the file and save to reload.",
     },
-    handler = {title = "Handler error"},
+    handler = { title = "Handler error" },
 }
 
 --- Full multi-line report for a caught error, ready for stderr.
@@ -145,16 +167,17 @@ function errfmt.render(err, kind, note)
     local spec = KINDS[kind]
     local msg = tostring(err)
     local loc = errfmt.parse(msg)
-    local out = {"\n"}
+    local out = { "\n" }
 
     note = note or spec.note
     out[#out + 1] = ("  %s %s%s\n\n"):format(
-        paint(RED, "✗"), paint(BOLD, spec.title),
-        note and (" " .. paint(DIM, "— " .. note)) or "")
+        paint(RED, "✗"),
+        paint(BOLD, spec.title),
+        note and (" " .. paint(DIM, "— " .. note)) or ""
+    )
 
     if loc then
-        out[#out + 1] = ("  %s %s\n"):format(
-            paint(CYAN, ("%s:%d"):format(loc.file, loc.line)), loc.message)
+        out[#out + 1] = ("  %s %s\n"):format(paint(CYAN, ("%s:%d"):format(loc.file, loc.line)), loc.message)
         local frame = errfmt.frame(loc)
         if frame then
             out[#out + 1] = "\n" .. frame

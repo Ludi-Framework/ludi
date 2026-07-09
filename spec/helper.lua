@@ -2,7 +2,7 @@
 -- Stubs the native ludi_core module so framework logic is tested in
 -- isolation; specs can inspect what reached the core via spec.core_stub.
 
-local stub = {started = nil}
+local stub = { started = nil }
 package.loaded["spec.core_stub"] = stub
 
 package.preload["ludi_core"] = function()
@@ -13,9 +13,11 @@ package.preload["ludi_core"] = function()
                 dispatch = dispatch,
                 on_listen = on_listen,
                 on_reload = on_reload,
-                ws = ws
+                ws = ws,
             }
-            if on_listen then on_listen() end
-        end
+            if on_listen then
+                on_listen()
+            end
+        end,
     }
 end

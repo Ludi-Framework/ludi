@@ -23,11 +23,10 @@ pub fn run(bundle: Bundle) -> ExitCode {
 }
 
 fn execute(lua: &Lua, bundle: Bundle) -> LuaResult<()> {
-    let entry_source = bundle
-        .files
-        .get(&bundle.entry)
-        .cloned()
-        .ok_or_else(|| LuaError::runtime(format!("bundle has no entrypoint {:?}", bundle.entry)))?;
+    let entry_source =
+        bundle.files.get(&bundle.entry).cloned().ok_or_else(|| {
+            LuaError::runtime(format!("bundle has no entrypoint {:?}", bundle.entry))
+        })?;
 
     let package: LuaTable = lua.globals().get("package")?;
 
@@ -68,9 +67,9 @@ fn execute(lua: &Lua, bundle: Bundle) -> LuaResult<()> {
             }
         }
 
-        Ok(LuaValue::String(
-            lua.create_string(format!("\n\tno module '{name}' in the bundle"))?,
-        ))
+        Ok(LuaValue::String(lua.create_string(format!(
+            "\n\tno module '{name}' in the bundle"
+        ))?))
     })?;
     let searchers: LuaTable = package.get("searchers")?;
     searchers.raw_insert(2, searcher)?;

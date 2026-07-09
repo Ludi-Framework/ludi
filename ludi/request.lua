@@ -39,7 +39,9 @@ end
 ---@return string? err error message when decoding fails
 function Request:json()
     local ok, decoded = pcall(json.decode, self.body)
-    if not ok then return nil, decoded end
+    if not ok then
+        return nil, decoded
+    end
     return decoded
 end
 

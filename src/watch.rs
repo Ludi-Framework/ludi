@@ -61,7 +61,9 @@ fn scan(root: &Path) -> HashMap<PathBuf, SystemTime> {
 }
 
 fn scan_into(dir: &Path, out: &mut HashMap<PathBuf, SystemTime>) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         let name = entry.file_name();

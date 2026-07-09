@@ -34,32 +34,41 @@ impl WsHandle {
     }
 
     pub(crate) fn close(&self, code: u16, reason: String) -> bool {
-        let frame = CloseFrame { code: CloseCode::from(code), reason: reason.into() };
+        let frame = CloseFrame {
+            code: CloseCode::from(code),
+            reason: reason.into(),
+        };
         self.tx.send(Message::Close(Some(frame))).is_ok()
     }
 }
 
 impl LuaUserData for WsHandle {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method("send", |_, this, (data, binary): (LuaString, Option<bool>)| {
-            if binary.unwrap_or(false) {
-                let bytes = Bytes::from(data.as_bytes().to_vec());
-                Ok(this.tx.send(Message::Binary(bytes)).is_ok())
-            } else {
-                let text = std::str::from_utf8(&data.as_bytes())
+        methods.add_method(
+            "send",
+            |_, this, (data, binary): (LuaString, Option<bool>)| {
+                if binary.unwrap_or(false) {
+                    let bytes = Bytes::from(data.as_bytes().to_vec());
+                    Ok(this.tx.send(Message::Binary(bytes)).is_ok())
+                } else {
+                    let text = std::str::from_utf8(&data.as_bytes())
                     .map_err(|_| {
                         LuaError::runtime(
                             "ludi: a text frame must be valid UTF-8 (send(data, true) for binary)",
                         )
                     })?
                     .to_owned();
-                Ok(this.send_text(text))
-            }
-        });
+                    Ok(this.send_text(text))
+                }
+            },
+        );
 
-        methods.add_method("close", |_, this, (code, reason): (Option<u16>, Option<String>)| {
-            Ok(this.close(code.unwrap_or(1000), reason.unwrap_or_default()))
-        });
+        methods.add_method(
+            "close",
+            |_, this, (code, reason): (Option<u16>, Option<String>)| {
+                Ok(this.close(code.unwrap_or(1000), reason.unwrap_or_default()))
+            },
+        );
     }
 }
 
@@ -77,11 +86,20 @@ pub async fn run(upgraded: Upgraded, id: u64, msgs: mpsc::UnboundedSender<Msg>) 
     let (mut write, mut read) = stream.split();
 
     let (out_tx, mut out_rx) = mpsc::unbounded_channel::<Message>();
-    if msgs.send(Msg::WsOpen { id, handle: WsHandle { tx: out_tx } }).is_err() {
+    if msgs
+        .send(Msg::WsOpen {
+            id,
+            handle: WsHandle { tx: out_tx },
+        })
+        .is_err()
+    {
         return;
     }
 
-    let mut close = WsEvent::Close { code: None, reason: String::new() };
+    let mut close = WsEvent::Close {
+        code: None,
+        reason: String::new(),
+    };
 
     loop {
         tokio::select! {

@@ -26,14 +26,22 @@ Group.__index = Group
 
 local function copy(list)
     local out = {}
-    for i, item in ipairs(list) do out[i] = item end
+    for i, item in ipairs(list) do
+        out[i] = item
+    end
     return out
 end
 
 local function to_list(middlewares)
-    if middlewares == nil then return {} end
-    if type(middlewares) == "function" then return {middlewares} end
-    if type(middlewares) == "table" then return copy(middlewares) end
+    if middlewares == nil then
+        return {}
+    end
+    if type(middlewares) == "function" then
+        return { middlewares }
+    end
+    if type(middlewares) == "table" then
+        return copy(middlewares)
+    end
     error("Group middlewares must be function or table of functions")
 end
 
@@ -41,7 +49,9 @@ end
 -- Everything else is plain concatenation; the router ignores empty
 -- segments, so a double slash in the joined path is harmless.
 local function join(prefix, path)
-    if path == "/" or path == "" then return prefix end
+    if path == "/" or path == "" then
+        return prefix
+    end
     return prefix .. path
 end
 
@@ -59,8 +69,7 @@ end
 ---@param b? ludi.GroupBody
 ---@return ludi.Group
 function Group.new(app, parent_prefix, parent_middlewares, prefix, a, b)
-    assert(type(prefix) == "string" and prefix:sub(1, 1) == "/",
-           'Group prefix must be a string starting with "/"')
+    assert(type(prefix) == "string" and prefix:sub(1, 1) == "/", 'Group prefix must be a string starting with "/"')
 
     local middlewares, body
     if b ~= nil then
@@ -70,19 +79,20 @@ function Group.new(app, parent_prefix, parent_middlewares, prefix, a, b)
     else
         middlewares = a
     end
-    assert(body == nil or type(body) == "function",
-           "Group body must be a function")
+    assert(body == nil or type(body) == "function", "Group body must be a function")
 
     local group = setmetatable({
         app = app,
         prefix = join(parent_prefix, prefix),
-        middlewares = copy(parent_middlewares)
+        middlewares = copy(parent_middlewares),
     }, Group)
     for _, middleware in ipairs(to_list(middlewares)) do
         table.insert(group.middlewares, middleware)
     end
 
-    if body then body(group) end
+    if body then
+        body(group)
+    end
     return group
 end
 
@@ -116,8 +126,7 @@ end
 ---@overload fun(self: ludi.Group, prefix: string, body: ludi.GroupBody): ludi.Group
 ---@overload fun(self: ludi.Group, prefix: string): ludi.Group
 function Group:group(prefix, middlewares, body)
-    return Group.new(self.app, self.prefix, self.middlewares, prefix,
-                     middlewares, body)
+    return Group.new(self.app, self.prefix, self.middlewares, prefix, middlewares, body)
 end
 
 --- Registers a WebSocket route on the root application, with the group
@@ -149,7 +158,7 @@ end
 
 local function makeMethod(method)
     return function(self, path, ...)
-        local args = {...}
+        local args = { ... }
         if #args == 1 then
             self:addRoute(method, path, nil, args[1])
         elseif #args == 2 then
@@ -157,7 +166,10 @@ local function makeMethod(method)
         else
             error(
                 ("Expected: %s(path, handler) or %s(path, middleware(s), handler)"):format(
-                    method:lower(), method:lower()))
+                    method:lower(),
+                    method:lower()
+                )
+            )
         end
     end
 end

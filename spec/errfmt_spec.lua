@@ -11,11 +11,17 @@ end
 describe("errfmt", function()
     local source
 
-    setup(function() errfmt.color = false end)
-    teardown(function() errfmt.color = true end)
+    setup(function()
+        errfmt.color = false
+    end)
+    teardown(function()
+        errfmt.color = true
+    end)
 
     after_each(function()
-        if source then os.remove(source) end
+        if source then
+            os.remove(source)
+        end
         source = nil
     end)
 
@@ -29,8 +35,9 @@ describe("errfmt", function()
 
         it("finds the location inside a require() wrapper", function()
             local loc = errfmt.parse(
-                "error loading module 'routes' from file './routes.lua':\n" ..
-                    "\t./routes.lua:3: unexpected symbol near ')'")
+                "error loading module 'routes' from file './routes.lua':\n"
+                    .. "\t./routes.lua:3: unexpected symbol near ')'"
+            )
             assert.are.equal("./routes.lua", loc.file)
             assert.are.equal(3, loc.line)
         end)
@@ -57,8 +64,7 @@ describe("errfmt", function()
     describe("render", function()
         it("frames the offending line with context and carets", function()
             source = write_source("local a = 1\nlocal b = 2\nlocal c = = 3\nlocal d = 4\n")
-            local report = errfmt.render(
-                source .. ":3: unexpected symbol near '='", "syntax")
+            local report = errfmt.render(source .. ":3: unexpected symbol near '='", "syntax")
 
             assert.truthy(report:find("Syntax error", 1, true))
             assert.truthy(report:find("keeping previous version", 1, true))
@@ -70,8 +76,7 @@ describe("errfmt", function()
 
         it("points the caret at the last occurrence of the token", function()
             source = write_source("local c = = 3\n")
-            local report = errfmt.render(
-                source .. ":1: unexpected symbol near '='", "syntax")
+            local report = errfmt.render(source .. ":1: unexpected symbol near '='", "syntax")
 
             local caret_line = report:match("│ ( *%^+)\n")
             assert.are.equal((" "):rep(10) .. "^", caret_line)
@@ -79,8 +84,7 @@ describe("errfmt", function()
 
         it("matches bare words on word boundaries", function()
             source = write_source("local append end\n")
-            local report = errfmt.render(
-                source .. ":1: unexpected symbol near 'end'", "syntax")
+            local report = errfmt.render(source .. ":1: unexpected symbol near 'end'", "syntax")
 
             local caret_line = report:match("│ ( *%^+)\n")
             assert.are.equal((" "):rep(13) .. "^^^", caret_line)
@@ -97,7 +101,9 @@ describe("errfmt", function()
             source = write_source("local m = {}\nm.nope()\n")
             local report = errfmt.render(
                 source .. ":2: attempt to call a nil value (field 'nope')",
-                "handler", "GET /ping responded 500")
+                "handler",
+                "GET /ping responded 500"
+            )
 
             assert.truthy(report:find("Handler error", 1, true))
             assert.truthy(report:find("GET /ping responded 500", 1, true))

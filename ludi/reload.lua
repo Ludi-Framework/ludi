@@ -21,10 +21,7 @@ for name in pairs(package.loaded) do
 end
 
 local function is_protected(name)
-    return baseline[name]
-        or name == "ludi"
-        or name == "ludi_core"
-        or name:find("^ludi%.") ~= nil
+    return baseline[name] or name == "ludi" or name == "ludi_core" or name:find("^ludi%.") ~= nil
 end
 
 --- Builds the `on_reload` callback handed to ludi_core.
@@ -34,8 +31,7 @@ end
 ---@return fun(changed: string[])
 function reload.handler(entrypoint, capture, swap)
     return function(changed)
-        io.stderr:write(errfmt.info(("reloading (%s changed)"):format(
-                                        table.concat(changed, ", "))))
+        io.stderr:write(errfmt.info(("reloading (%s changed)"):format(table.concat(changed, ", "))))
 
         for name in pairs(package.loaded) do
             if not is_protected(name) then
@@ -44,13 +40,17 @@ function reload.handler(entrypoint, capture, swap)
         end
 
         local new_app
-        capture(function(app) new_app = app end)
+        capture(function(app)
+            new_app = app
+        end)
         -- loadfile first so a syntax error in the entrypoint itself is
         -- told apart from an error raised while the chunk runs (which
         -- includes syntax errors in require()d modules).
         local chunk, err = loadfile(entrypoint)
         local ok = false
-        if chunk then ok, err = pcall(chunk) end
+        if chunk then
+            ok, err = pcall(chunk)
+        end
         capture(nil)
 
         if not ok then
@@ -59,8 +59,7 @@ function reload.handler(entrypoint, capture, swap)
             swap(new_app)
             io.stderr:write(errfmt.ok("reloaded"))
         else
-            io.stderr:write(errfmt.warn(
-                "reload never reached app:listen(); keeping previous version"))
+            io.stderr:write(errfmt.warn("reload never reached app:listen(); keeping previous version"))
         end
     end
 end
