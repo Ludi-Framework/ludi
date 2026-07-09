@@ -5,7 +5,7 @@ describe("request", function()
         local req = Request.new({
             method = "GET",
             path = "/",
-            query = "a=1&b=two"
+            query = "a=1&b=two",
         })
 
         assert.are.equal("1", req.query.a)
@@ -17,7 +17,7 @@ describe("request", function()
             method = "POST",
             path = "/",
             query = "",
-            body = '{"name":"ludi"}'
+            body = '{"name":"ludi"}',
         })
 
         assert.are.equal('{"name":"ludi"}', req.body)
@@ -25,8 +25,7 @@ describe("request", function()
     end)
 
     it("exposes path params passed by the router", function()
-        local req = Request.new({method = "GET", path = "/users/42", query = ""},
-                                {id = "42"})
+        local req = Request.new({ method = "GET", path = "/users/42", query = "" }, { id = "42" })
 
         assert.are.equal("42", req.params.id)
     end)

@@ -56,13 +56,19 @@ local DEV = watch_env ~= nil and watch_env ~= "" and watch_env ~= "0"
 
 ---@return Ludi
 function Ludi.new()
-    return setmetatable({routes = {}, ws_routes = {}, middlewares = {}}, Ludi)
+    return setmetatable({ routes = {}, ws_routes = {}, middlewares = {} }, Ludi)
 end
 
 local function toMiddlewareList(options)
-    if options == nil then return {} end
-    if type(options) == "function" then return {options} end
-    if type(options) == "table" then return options end
+    if options == nil then
+        return {}
+    end
+    if type(options) == "function" then
+        return { options }
+    end
+    if type(options) == "table" then
+        return options
+    end
     error("Route middlewares must be function or table of functions")
 end
 
@@ -111,13 +117,13 @@ function Ludi:addRoute(method, path, options, handler)
         path = path,
         segments = Router.compile(path),
         middlewares = route_middlewares,
-        handler = handler
+        handler = handler,
     })
 end
 
 local function makeMethod(method)
     return function(self, path, ...)
-        local args = {...}
+        local args = { ... }
         if #args == 1 then
             self:addRoute(method, path, nil, args[1])
         elseif #args == 2 then
@@ -125,7 +131,10 @@ local function makeMethod(method)
         else
             error(
                 ("Expected: %s(path, handler) or %s(path, middleware(s), handler)"):format(
-                    method:lower(), method:lower()))
+                    method:lower(),
+                    method:lower()
+                )
+            )
         end
     end
 end
@@ -163,7 +172,7 @@ function Ludi:addWsRoute(path, options, handler)
         path = path,
         segments = Router.compile(path),
         middlewares = toMiddlewareList(options),
-        handler = handler
+        handler = handler,
     })
 end
 
@@ -186,8 +195,8 @@ function Ludi:_dispatch(raw)
     if not route then
         return {
             status = 404,
-            headers = {["Content-Type"] = "application/json"},
-            body = '{"error":"Not Found"}'
+            headers = { ["Content-Type"] = "application/json" },
+            body = '{"error":"Not Found"}',
         }
     end
 
@@ -198,8 +207,9 @@ function Ludi:_dispatch(raw)
     -- yet; this is what lets the future async stdlib suspend handlers
     -- without breaking existing applications.
     local co = coroutine.create(function()
-        run_chain(req, res, self.middlewares, route.middlewares,
-                  function() route.handler(req, res) end)
+        run_chain(req, res, self.middlewares, route.middlewares, function()
+            route.handler(req, res)
+        end)
     end)
 
     local ok, err = coroutine.resume(co)
@@ -210,20 +220,20 @@ function Ludi:_dispatch(raw)
         err = "coroutine yielded outside an async context"
     end
 
-    if coroutine.close then coroutine.close(co) end
+    if coroutine.close then
+        coroutine.close(co)
+    end
 
     if not ok then
         if DEV then
-            io.stderr:write(errfmt.render(err, "handler",
-                ("%s %s responded 500"):format(raw.method, raw.path)))
+            io.stderr:write(errfmt.render(err, "handler", ("%s %s responded 500"):format(raw.method, raw.path)))
         else
-            io.stderr:write(("ludi: handler error on %s %s: %s\n"):format(
-                                raw.method, raw.path, tostring(err)))
+            io.stderr:write(("ludi: handler error on %s %s: %s\n"):format(raw.method, raw.path, tostring(err)))
         end
         return {
             status = 500,
-            headers = {["Content-Type"] = "application/json"},
-            body = '{"error":"Internal Server Error"}'
+            headers = { ["Content-Type"] = "application/json" },
+            body = '{"error":"Internal Server Error"}',
         }
     end
 
@@ -243,8 +253,8 @@ function Ludi:_ws_upgrade(id, raw)
     if not route then
         return {
             status = 404,
-            headers = {["Content-Type"] = "application/json"},
-            body = '{"error":"Not Found"}'
+            headers = { ["Content-Type"] = "application/json" },
+            body = '{"error":"Not Found"}',
         }
     end
 
@@ -253,8 +263,9 @@ function Ludi:_ws_upgrade(id, raw)
     local accepted = false
 
     local co = coroutine.create(function()
-        run_chain(req, res, self.middlewares, route.middlewares,
-                  function() accepted = true end)
+        run_chain(req, res, self.middlewares, route.middlewares, function()
+            accepted = true
+        end)
     end)
 
     local ok, err = coroutine.resume(co)
@@ -264,27 +275,29 @@ function Ludi:_ws_upgrade(id, raw)
         err = "coroutine yielded outside an async context"
     end
 
-    if coroutine.close then coroutine.close(co) end
+    if coroutine.close then
+        coroutine.close(co)
+    end
 
     if not ok then
         if DEV then
-            io.stderr:write(errfmt.render(err, "handler",
-                ("WS %s handshake rejected with 500"):format(raw.path)))
+            io.stderr:write(errfmt.render(err, "handler", ("WS %s handshake rejected with 500"):format(raw.path)))
         else
-            io.stderr:write(("ludi: middleware error on WS %s: %s\n"):format(
-                                raw.path, tostring(err)))
+            io.stderr:write(("ludi: middleware error on WS %s: %s\n"):format(raw.path, tostring(err)))
         end
         return {
             status = 500,
-            headers = {["Content-Type"] = "application/json"},
-            body = '{"error":"Internal Server Error"}'
+            headers = { ["Content-Type"] = "application/json" },
+            body = '{"error":"Internal Server Error"}',
         }
     end
 
-    if not accepted then return res:build() end
+    if not accepted then
+        return res:build()
+    end
 
     ws.register(id, route.handler, req)
-    return {accept = true}
+    return { accept = true }
 end
 
 --- Starts the HTTP server and blocks serving requests.
@@ -314,28 +327,35 @@ function Ludi:listen(port, callback)
         if core.bundled then
             -- A binary built by `ludi build` carries its sources inside;
             -- there is nothing on disk to watch or re-execute.
-            io.stderr:write("ludi: LUDI_WATCH ignored: hot reload is " ..
-                                "unavailable in a bundled binary\n")
+            io.stderr:write("ludi: LUDI_WATCH ignored: hot reload is " .. "unavailable in a bundled binary\n")
         elseif entrypoint then
-            on_reload = reload.handler(
-                entrypoint,
-                function(interceptor) Ludi._capture_listen = interceptor end,
-                function(app) current = app end)
+            on_reload = reload.handler(entrypoint, function(interceptor)
+                Ludi._capture_listen = interceptor
+            end, function(app)
+                current = app
+            end)
         else
-            io.stderr:write("ludi: LUDI_WATCH is set but the entrypoint is " ..
-                                "unknown (no arg[0]); hot reload disabled\n")
+            io.stderr:write(
+                "ludi: LUDI_WATCH is set but the entrypoint is " .. "unknown (no arg[0]); hot reload disabled\n"
+            )
         end
     end
 
-    core.start_server(port or 3000,
-                      function(raw) return current:_dispatch(raw) end,
-                      callback, on_reload, {
-                          upgrade = function(id, raw)
-                              return current:_ws_upgrade(id, raw)
-                          end,
-                          open = ws.open,
-                          event = ws.event
-                      })
+    core.start_server(
+        port or 3000,
+        function(raw)
+            return current:_dispatch(raw)
+        end,
+        callback,
+        on_reload,
+        {
+            upgrade = function(id, raw)
+                return current:_ws_upgrade(id, raw)
+            end,
+            open = ws.open,
+            event = ws.event,
+        }
+    )
 end
 
 return Ludi

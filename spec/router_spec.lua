@@ -2,7 +2,7 @@ local Router = require("ludi.router")
 
 describe("router", function()
     it("matches a literal path", function()
-        local routes = {{method = "GET", segments = Router.compile("/hello")}}
+        local routes = { { method = "GET", segments = Router.compile("/hello") } }
         local route, params = Router.match(routes, "GET", "/hello")
 
         assert.is_not_nil(route)
@@ -13,8 +13,8 @@ describe("router", function()
         local routes = {
             {
                 method = "GET",
-                segments = Router.compile("/users/:id/posts/:post_id")
-            }
+                segments = Router.compile("/users/:id/posts/:post_id"),
+            },
         }
         local route, params = Router.match(routes, "GET", "/users/42/posts/7")
 
@@ -24,13 +24,13 @@ describe("router", function()
     end)
 
     it("respects the HTTP method", function()
-        local routes = {{method = "GET", segments = Router.compile("/hello")}}
+        local routes = { { method = "GET", segments = Router.compile("/hello") } }
 
         assert.is_nil(Router.match(routes, "POST", "/hello"))
     end)
 
     it("rejects paths with a different segment count", function()
-        local routes = {{method = "GET", segments = Router.compile("/a/b")}}
+        local routes = { { method = "GET", segments = Router.compile("/a/b") } }
 
         assert.is_nil(Router.match(routes, "GET", "/a"))
         assert.is_nil(Router.match(routes, "GET", "/a/b/c"))

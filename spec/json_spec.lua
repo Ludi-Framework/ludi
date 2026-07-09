@@ -5,13 +5,13 @@ describe("json", function()
         local decoded = json.decode(json.encode({
             name = "ludi",
             n = 3,
-            list = {1, 2, 3},
-            flag = true
+            list = { 1, 2, 3 },
+            flag = true,
         }))
 
         assert.are.equal("ludi", decoded.name)
         assert.are.equal(3, decoded.n)
-        assert.are.same({1, 2, 3}, decoded.list)
+        assert.are.same({ 1, 2, 3 }, decoded.list)
         assert.is_true(decoded.flag)
     end)
 
@@ -30,7 +30,7 @@ describe("json", function()
     end)
 
     it("roundtrips escaped strings", function()
-        local decoded = json.decode(json.encode({s = 'quote " and \n newline'}))
+        local decoded = json.decode(json.encode({ s = 'quote " and \n newline' }))
 
         assert.are.equal('quote " and \n newline', decoded.s)
     end)

@@ -5,9 +5,9 @@ local reload = require("ludi.reload")
 -- lands on Ludi._capture_listen so the entrypoint's app:listen() is captured
 -- instead of starting a server.
 local function make_handler(entrypoint, on_swap)
-    return reload.handler(entrypoint,
-                          function(fn) ludi._capture_listen = fn end,
-                          on_swap)
+    return reload.handler(entrypoint, function(fn)
+        ludi._capture_listen = fn
+    end, on_swap)
 end
 
 local function write_entrypoint(contents)
@@ -22,7 +22,9 @@ describe("hot reload", function()
     local entrypoint
 
     after_each(function()
-        if entrypoint then os.remove(entrypoint) end
+        if entrypoint then
+            os.remove(entrypoint)
+        end
         entrypoint = nil
         ludi._capture_listen = nil
     end)
@@ -36,7 +38,9 @@ describe("hot reload", function()
         ]])
 
         local swapped
-        make_handler(entrypoint, function(app) swapped = app end)({"app.lua"})
+        make_handler(entrypoint, function(app)
+            swapped = app
+        end)({ "app.lua" })
 
         assert.is_not_nil(swapped)
         assert.are.equal("/fresh", swapped.routes[1].path)
@@ -45,9 +49,9 @@ describe("hot reload", function()
 
     it("clears application modules from package.loaded, keeping ludi and the stdlib", function()
         entrypoint = write_entrypoint([[require("ludi").new():listen(3000)]])
-        package.loaded["myapp.routes"] = {version = 1}
+        package.loaded["myapp.routes"] = { version = 1 }
 
-        make_handler(entrypoint, function() end)({"myapp/routes.lua"})
+        make_handler(entrypoint, function() end)({ "myapp/routes.lua" })
 
         assert.is_nil(package.loaded["myapp.routes"])
         assert.are.equal(ludi, package.loaded["ludi"])
@@ -58,7 +62,9 @@ describe("hot reload", function()
         entrypoint = write_entrypoint([[local x = = 1]])
 
         local swapped
-        make_handler(entrypoint, function(app) swapped = app end)({"app.lua"})
+        make_handler(entrypoint, function(app)
+            swapped = app
+        end)({ "app.lua" })
 
         assert.is_nil(swapped)
         assert.is_nil(ludi._capture_listen)
@@ -68,7 +74,9 @@ describe("hot reload", function()
         entrypoint = write_entrypoint([[error("boom at load time")]])
 
         local swapped
-        make_handler(entrypoint, function(app) swapped = app end)({"app.lua"})
+        make_handler(entrypoint, function(app)
+            swapped = app
+        end)({ "app.lua" })
 
         assert.is_nil(swapped)
         assert.is_nil(ludi._capture_listen)
@@ -78,7 +86,9 @@ describe("hot reload", function()
         entrypoint = write_entrypoint([[local _ = require("ludi").new()]])
 
         local swapped
-        make_handler(entrypoint, function(app) swapped = app end)({"app.lua"})
+        make_handler(entrypoint, function(app)
+            swapped = app
+        end)({ "app.lua" })
 
         assert.is_nil(swapped)
     end)

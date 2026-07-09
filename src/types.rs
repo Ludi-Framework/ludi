@@ -49,7 +49,13 @@ pub enum WsEvent {
 pub enum Msg {
     Job(Job),
     WsUpgrade(WsUpgrade),
-    WsOpen { id: u64, handle: crate::ws::WsHandle },
-    WsEvent { id: u64, event: WsEvent },
+    WsOpen {
+        id: u64,
+        handle: crate::ws::WsHandle,
+    },
+    WsEvent {
+        id: u64,
+        event: WsEvent,
+    },
     Reload(Vec<String>),
 }

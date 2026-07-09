@@ -78,12 +78,20 @@ async fn handle(
     let (respond, response_rx) = oneshot::channel();
 
     if jobs.send(Msg::Job(Job { request, respond })).is_err() {
-        return Ok(plain(StatusCode::INTERNAL_SERVER_ERROR, "Server shutting down"));
+        return Ok(plain(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Server shutting down",
+        ));
     }
 
     let response = match response_rx.await {
         Ok(response) => response,
-        Err(_) => return Ok(plain(StatusCode::INTERNAL_SERVER_ERROR, "Handler dropped request")),
+        Err(_) => {
+            return Ok(plain(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Handler dropped request",
+            ));
+        }
     };
 
     Ok(build_response(response))
@@ -121,7 +129,10 @@ async fn handle_ws(
         .get("sec-websocket-version")
         .is_none_or(|version| version.as_bytes() != b"13")
     {
-        return Ok(plain(StatusCode::UPGRADE_REQUIRED, "Unsupported WebSocket version"));
+        return Ok(plain(
+            StatusCode::UPGRADE_REQUIRED,
+            "Unsupported WebSocket version",
+        ));
     }
 
     let key = req.headers()[SEC_WEBSOCKET_KEY].as_bytes().to_vec();
@@ -136,12 +147,25 @@ async fn handle_ws(
     let id = NEXT_WS_ID.fetch_add(1, Ordering::Relaxed);
     let (respond, decision_rx) = oneshot::channel();
 
-    if jobs.send(Msg::WsUpgrade(WsUpgrade { id, request, respond })).is_err() {
-        return Ok(plain(StatusCode::INTERNAL_SERVER_ERROR, "Server shutting down"));
+    if jobs
+        .send(Msg::WsUpgrade(WsUpgrade {
+            id,
+            request,
+            respond,
+        }))
+        .is_err()
+    {
+        return Ok(plain(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Server shutting down",
+        ));
     }
 
     match decision_rx.await {
-        Err(_) => Ok(plain(StatusCode::INTERNAL_SERVER_ERROR, "Handler dropped request")),
+        Err(_) => Ok(plain(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Handler dropped request",
+        )),
         Ok(WsDecision::Reject(response)) => Ok(build_response(response)),
         Ok(WsDecision::Accept) => {
             tokio::spawn(async move {
@@ -151,7 +175,10 @@ async fn handle_ws(
                         // The accepted connection never opened; a Close
                         // event lets Lua discard its pending handler.
                         eprintln!("ludi: websocket upgrade failed: {err}");
-                        let event = crate::types::WsEvent::Close { code: None, reason: String::new() };
+                        let event = crate::types::WsEvent::Close {
+                            code: None,
+                            reason: String::new(),
+                        };
                         let _ = jobs.send(Msg::WsEvent { id, event });
                     }
                 }
@@ -189,7 +216,12 @@ fn build_response(response: Response) -> HyperResponse<Full<Bytes>> {
 
     builder
         .body(Full::new(Bytes::from(response.body)))
-        .unwrap_or_else(|_| plain(StatusCode::INTERNAL_SERVER_ERROR, "Invalid response headers"))
+        .unwrap_or_else(|_| {
+            plain(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Invalid response headers",
+            )
+        })
 }
 
 fn plain(status: StatusCode, message: &str) -> HyperResponse<Full<Bytes>> {
@@ -254,7 +286,10 @@ mod tests {
         .await;
 
         assert!(response.starts_with("HTTP/1.1 201"), "got: {response}");
-        assert!(response.to_lowercase().contains("x-test: 1"), "got: {response}");
+        assert!(
+            response.to_lowercase().contains("x-test: 1"),
+            "got: {response}"
+        );
         assert!(
             response.contains("method=POST;path=/echo;query=a=1;body=hello"),
             "got: {response}"
@@ -293,7 +328,14 @@ mod tests {
                     Msg::WsOpen { id, handle } => {
                         handles.insert(id, handle);
                     }
-                    Msg::WsEvent { id, event: crate::types::WsEvent::Message { data, binary: false } } => {
+                    Msg::WsEvent {
+                        id,
+                        event:
+                            crate::types::WsEvent::Message {
+                                data,
+                                binary: false,
+                            },
+                    } => {
                         let text = String::from_utf8(data).unwrap();
                         handles[&id].send_text(format!("echo: {text}"));
                     }
@@ -378,7 +420,10 @@ mod tests {
                     Msg::WsOpen { id, handle } => {
                         handles.insert(id, handle);
                     }
-                    Msg::WsEvent { id, event: crate::types::WsEvent::Close { code, .. } } => {
+                    Msg::WsEvent {
+                        id,
+                        event: crate::types::WsEvent::Close { code, .. },
+                    } => {
                         handles.remove(&id);
                         let _ = events_tx.send(code);
                     }
@@ -392,7 +437,10 @@ mod tests {
 
         let mut client = ws_client(port, "/chat").await.unwrap();
         client
-            .close(Some(CloseFrame { code: CloseCode::Normal, reason: "".into() }))
+            .close(Some(CloseFrame {
+                code: CloseCode::Normal,
+                reason: "".into(),
+            }))
             .await
             .unwrap();
 

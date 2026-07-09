@@ -26,4 +26,14 @@ test:
 	cargo test --features $(LUA)
 	busted
 
-.PHONY: dev cli run test
+# Format Rust (rustfmt) and Lua (stylua) sources in place.
+fmt:
+	cargo fmt
+	stylua ludi/ spec/ examples/
+
+# Verify formatting without writing; fails if anything is out of style.
+fmt-check:
+	cargo fmt --check
+	stylua --check ludi/ spec/ examples/
+
+.PHONY: dev cli run test fmt fmt-check

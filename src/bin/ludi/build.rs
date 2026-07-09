@@ -45,7 +45,10 @@ fn try_build(args: &[String]) -> Result<String, String> {
         Some(given) => {
             let normalized = given.strip_prefix("./").unwrap_or(&given).to_string();
             if !files.iter().any(|(path, _)| *path == normalized) {
-                return Err(format!("entrypoint {given:?} not found under {}", cwd.display()));
+                return Err(format!(
+                    "entrypoint {given:?} not found under {}",
+                    cwd.display()
+                ));
             }
             normalized
         }
@@ -61,7 +64,9 @@ fn try_build(args: &[String]) -> Result<String, String> {
     let own_exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let runtime = std::fs::read(&own_exe).map_err(|e| e.to_string())?;
     if bundle::extract_payload(&runtime).is_some() {
-        return Err("this executable already contains an app; build with the plain ludi CLI".into());
+        return Err(
+            "this executable already contains an app; build with the plain ludi CLI".into(),
+        );
     }
 
     let payload = bundle::encode(&entry, &files);

@@ -19,13 +19,13 @@ local function upgrade(app, raw)
 end
 
 local function fakeHandle()
-    local handle = {sent = {}, closed = nil}
+    local handle = { sent = {}, closed = nil }
     function handle:send(data, binary)
-        table.insert(self.sent, {data = data, binary = binary})
+        table.insert(self.sent, { data = data, binary = binary })
         return true
     end
     function handle:close(code, reason)
-        self.closed = {code = code, reason = reason}
+        self.closed = { code = code, reason = reason }
         return true
     end
     return handle
@@ -34,7 +34,7 @@ end
 -- Runs the full accept path: handshake, then the upgrade completing.
 local function connect(app, path)
     local handle = fakeHandle()
-    local decision, id = upgrade(app, {path = path})
+    local decision, id = upgrade(app, { path = path })
     assert.is_true(decision.accept)
     ws.open(id, handle)
     return handle, id
@@ -45,7 +45,7 @@ describe("websocket", function()
         local app = ludi.new()
         app:ws("/chat", function() end)
 
-        local decision = upgrade(app, {path = "/chat"})
+        local decision = upgrade(app, { path = "/chat" })
 
         assert.is_true(decision.accept)
     end)
@@ -54,7 +54,7 @@ describe("websocket", function()
         local app = ludi.new()
         app:ws("/chat", function() end)
 
-        local decision = upgrade(app, {path = "/nope"})
+        local decision = upgrade(app, { path = "/nope" })
 
         assert.is_nil(decision.accept)
         assert.are.equal(404, decision.status)
@@ -64,14 +64,14 @@ describe("websocket", function()
         local app = ludi.new()
         local got
         app:ws("/room/:id", function(conn, req)
-            got = {conn = conn, room = req.params.id}
+            got = { conn = conn, room = req.params.id }
         end)
 
         local handle = connect(app, "/room/42")
 
         assert.are.equal("42", got.room)
         got.conn:send("hi")
-        assert.are.same({data = "hi", binary = false}, handle.sent[1])
+        assert.are.same({ data = "hi", binary = false }, handle.sent[1])
     end)
 
     it("lets middlewares reject the handshake", function()
@@ -80,15 +80,15 @@ describe("websocket", function()
             if req.headers["authorization"] then
                 next()
             else
-                res:status(401):json({error = "Unauthorized"})
+                res:status(401):json({ error = "Unauthorized" })
             end
         end
-        app:ws("/private", {auth}, function() end)
+        app:ws("/private", { auth }, function() end)
 
-        local denied = upgrade(app, {path = "/private"})
+        local denied = upgrade(app, { path = "/private" })
         local allowed = upgrade(app, {
             path = "/private",
-            headers = {authorization = "token"}
+            headers = { authorization = "token" },
         })
 
         assert.are.equal(401, denied.status)
@@ -105,18 +105,20 @@ describe("websocket", function()
         end)
         app:ws("/chat", function() end)
 
-        local decision = upgrade(app, {path = "/chat"})
+        local decision = upgrade(app, { path = "/chat" })
 
         assert.is_true(decision.accept)
-        assert.are.same({"global"}, seen)
+        assert.are.same({ "global" }, seen)
     end)
 
     it("rejects with 500 when a middleware errors", function()
         local app = ludi.new()
-        app:use(function() error("kaboom") end)
+        app:use(function()
+            error("kaboom")
+        end)
         app:ws("/chat", function() end)
 
-        local decision = upgrade(app, {path = "/chat"})
+        local decision = upgrade(app, { path = "/chat" })
 
         assert.are.equal(500, decision.status)
     end)
@@ -126,7 +128,7 @@ describe("websocket", function()
         local got = {}
         app:ws("/chat", function(conn)
             conn:on("message", function(data, binary)
-                table.insert(got, {data = data, binary = binary})
+                table.insert(got, { data = data, binary = binary })
             end)
         end)
 
@@ -135,30 +137,34 @@ describe("websocket", function()
         ws.event(id, "message", "\1\2", true)
 
         assert.are.same({
-            {data = "hello", binary = false},
-            {data = "\1\2", binary = true}
+            { data = "hello", binary = false },
+            { data = "\1\2", binary = true },
         }, got)
     end)
 
     it("echoes through the native handle", function()
         local app = ludi.new()
         app:ws("/echo", function(conn)
-            conn:on("message", function(data) conn:send("echo: " .. data) end)
+            conn:on("message", function(data)
+                conn:send("echo: " .. data)
+            end)
         end)
 
         local handle, id = connect(app, "/echo")
         ws.event(id, "message", "hi", false)
 
-        assert.are.same({data = "echo: hi", binary = false}, handle.sent[1])
+        assert.are.same({ data = "echo: hi", binary = false }, handle.sent[1])
     end)
 
     it("fires close listeners once and drops the connection", function()
         local app = ludi.new()
         local closes, messages = {}, 0
         app:ws("/chat", function(conn)
-            conn:on("message", function() messages = messages + 1 end)
+            conn:on("message", function()
+                messages = messages + 1
+            end)
             conn:on("close", function(code, reason)
-                table.insert(closes, {code = code, reason = reason})
+                table.insert(closes, { code = code, reason = reason })
             end)
         end)
 
@@ -167,7 +173,7 @@ describe("websocket", function()
         ws.event(id, "message", "late", false)
         ws.event(id, "close", 1000, "again")
 
-        assert.are.same({{code = 1000, reason = "bye"}}, closes)
+        assert.are.same({ { code = 1000, reason = "bye" } }, closes)
         assert.are.equal(0, messages)
     end)
 
@@ -175,19 +181,23 @@ describe("websocket", function()
         local app = ludi.new()
         local got
         app:ws("/chat", function(conn)
-            conn:on("error", function(err) got = err end)
+            conn:on("error", function(err)
+                got = err
+            end)
         end)
 
         local _, id = connect(app, "/chat")
         ws.event(id, "error", "Space in headers")
 
-        assert.are.same({message = "Space in headers"}, got)
+        assert.are.same({ message = "Space in headers" }, got)
     end)
 
     it("exposes closed as a queryable property", function()
         local app = ludi.new()
         local conns = {}
-        app:ws("/chat", function(conn) table.insert(conns, conn) end)
+        app:ws("/chat", function(conn)
+            table.insert(conns, conn)
+        end)
 
         local _, id = connect(app, "/chat")
 
@@ -200,19 +210,23 @@ describe("websocket", function()
         local app = ludi.new()
         local got
         local function auth(req, _, next)
-            req.user = {name = "ana"}
+            req.user = { name = "ana" }
             next()
         end
-        app:ws("/private", {auth}, function(_, req) got = req.user end)
+        app:ws("/private", { auth }, function(_, req)
+            got = req.user
+        end)
 
         connect(app, "/private")
 
-        assert.are.same({name = "ana"}, got)
+        assert.are.same({ name = "ana" }, got)
     end)
 
     it("closes with 1011 when the handler errors", function()
         local app = ludi.new()
-        app:ws("/boom", function() error("kaboom") end)
+        app:ws("/boom", function()
+            error("kaboom")
+        end)
 
         local handle = connect(app, "/boom")
 
@@ -236,14 +250,14 @@ describe("websocket", function()
                 next()
             end
         end
-        app:group("/api", {tag("group")}, function(api)
+        app:group("/api", { tag("group") }, function(api)
             api:ws("/chat", tag("route"), function() end)
         end)
 
-        local decision = upgrade(app, {path = "/api/chat"})
+        local decision = upgrade(app, { path = "/api/chat" })
 
         assert.is_true(decision.accept)
-        assert.are.same({"group", "route"}, seen)
+        assert.are.same({ "group", "route" }, seen)
     end)
 
     it("hands the ws callbacks to the native core", function()

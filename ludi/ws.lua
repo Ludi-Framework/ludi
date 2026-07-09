@@ -34,13 +34,13 @@ local DEV = watch_env ~= nil and watch_env ~= "" and watch_env ~= "0"
 local Conn = {}
 Conn.__index = Conn
 
-local EVENTS = {message = true, close = true, ["error"] = true}
+local EVENTS = { message = true, close = true, ["error"] = true }
 
 function Conn.new(handle)
     return setmetatable({
         handle = handle,
         closed = false,
-        listeners = {message = {}, close = {}, ["error"] = {}}
+        listeners = { message = {}, close = {}, ["error"] = {} },
     }, Conn)
 end
 
@@ -51,8 +51,7 @@ end
 ---@param event "message"|"close"|"error"
 ---@param fn function
 function Conn:on(event, fn)
-    assert(EVENTS[event],
-           'Unknown WebSocket event: expected "message", "close" or "error"')
+    assert(EVENTS[event], 'Unknown WebSocket event: expected "message", "close" or "error"')
     assert(type(fn) == "function", "Listener must be a function")
     table.insert(self.listeners[event], fn)
 end
@@ -79,7 +78,7 @@ end
 local Ws = {}
 
 local pending = {} -- id -> {handler, req}: accepted, upgrade in flight
-local open = {}    -- id -> Conn
+local open = {} -- id -> Conn
 
 local function report(err, context)
     if DEV then
@@ -97,15 +96,19 @@ local function protected(fn, context)
         ok = false
         err = "coroutine yielded outside an async context"
     end
-    if coroutine.close then coroutine.close(co) end
-    if not ok then report(err, context) end
+    if coroutine.close then
+        coroutine.close(co)
+    end
+    if not ok then
+        report(err, context)
+    end
     return ok
 end
 
 --- Remembers an accepted handshake until ludi_core reports the upgrade
 --- complete. Called by Ludi:_ws_upgrade.
 function Ws.register(id, handler, req)
-    pending[id] = {handler = handler, req = req}
+    pending[id] = { handler = handler, req = req }
 end
 
 --- Called by ludi_core when the upgrade completes: promotes the pending
@@ -123,9 +126,12 @@ function Ws.open(id, handle)
     local conn = Conn.new(handle)
     open[id] = conn
 
-    local ok = protected(function() accepted.handler(conn, accepted.req) end,
-                         ("WS %s handler failed"):format(accepted.req.path))
-    if not ok then conn:close(1011, "") end
+    local ok = protected(function()
+        accepted.handler(conn, accepted.req)
+    end, ("WS %s handler failed"):format(accepted.req.path))
+    if not ok then
+        conn:close(1011, "")
+    end
 end
 
 --- Called by ludi_core for every event on a connection. "close" is the
@@ -139,23 +145,31 @@ function Ws.event(id, kind, a, b)
         if conn then
             conn.closed = true
             for _, fn in ipairs(conn.listeners.close) do
-                protected(function() fn(a, b) end, "WS close listener failed")
+                protected(function()
+                    fn(a, b)
+                end, "WS close listener failed")
             end
         end
         return
     end
 
     local conn = open[id]
-    if not conn then return end
+    if not conn then
+        return
+    end
 
     if kind == "message" then
         for _, fn in ipairs(conn.listeners.message) do
-            protected(function() fn(a, b) end, "WS message listener failed")
+            protected(function()
+                fn(a, b)
+            end, "WS message listener failed")
         end
     elseif kind == "error" then
-        local err = {message = a}
+        local err = { message = a }
         for _, fn in ipairs(conn.listeners["error"]) do
-            protected(function() fn(err) end, "WS error listener failed")
+            protected(function()
+                fn(err)
+            end, "WS error listener failed")
         end
     end
 end

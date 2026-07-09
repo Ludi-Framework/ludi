@@ -9,11 +9,11 @@ end)
 
 app:get("/hello", function(req, res)
     print(req.query["teste"])
-    res:status(202):json({message = "Hello from lua"})
+    res:status(202):json({ message = "Hello from lua" })
 end)
 
 app:get("/users/:id", function(req, res)
-    res:json({id = req.params.id})
+    res:json({ id = req.params.id })
 end)
 
 app:post("/echo", function(req, res)

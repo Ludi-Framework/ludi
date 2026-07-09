@@ -60,8 +60,7 @@ pub fn start_server(
     while let Some(msg) = msgs_rx.blocking_recv() {
         match msg {
             Msg::Job(job) => {
-                let response = match dispatch.call::<LuaTable>(request_to_lua(lua, &job.request)?)
-                {
+                let response = match dispatch.call::<LuaTable>(request_to_lua(lua, &job.request)?) {
                     Ok(table) => response_from_lua(&table)?,
                     Err(err) => {
                         eprintln!("ludi: unhandled error in Lua dispatch: {err}");
@@ -74,10 +73,12 @@ pub fn start_server(
             Msg::WsUpgrade(upgrade) => {
                 let decision = match &ws {
                     None => WsDecision::Reject(not_found()),
-                    Some(callbacks) => ws_decision(lua, callbacks, &upgrade).unwrap_or_else(|err| {
-                        eprintln!("ludi: unhandled error in Lua websocket upgrade: {err}");
-                        WsDecision::Reject(internal_error())
-                    }),
+                    Some(callbacks) => {
+                        ws_decision(lua, callbacks, &upgrade).unwrap_or_else(|err| {
+                            eprintln!("ludi: unhandled error in Lua websocket upgrade: {err}");
+                            WsDecision::Reject(internal_error())
+                        })
+                    }
                 };
                 let _ = upgrade.respond.send(decision);
             }
@@ -143,7 +144,11 @@ fn response_from_lua(table: &LuaTable) -> LuaResult<Response> {
         }
     }
 
-    Ok(Response { status, headers, body })
+    Ok(Response {
+        status,
+        headers,
+        body,
+    })
 }
 
 /// Asks Lua to decide a handshake: `{ accept = true }` upgrades, any
@@ -154,8 +159,7 @@ fn ws_decision(
     upgrade: &crate::types::WsUpgrade,
 ) -> LuaResult<WsDecision> {
     let decide = callbacks.get::<LuaFunction>("upgrade")?;
-    let decision =
-        decide.call::<LuaTable>((upgrade.id, request_to_lua(lua, &upgrade.request)?))?;
+    let decision = decide.call::<LuaTable>((upgrade.id, request_to_lua(lua, &upgrade.request)?))?;
 
     if decision.get::<Option<bool>>("accept")?.unwrap_or(false) {
         Ok(WsDecision::Accept)
