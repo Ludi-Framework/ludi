@@ -44,6 +44,16 @@ jobs:
           luaVersion: ${{ matrix.lua }}
       - run: LUA_INC=$GITHUB_WORKSPACE/.lua/include cargo test --features ${{ matrix.feature }}
 
+  # Windows has no system Lua headers to point mlua at, so exercise the
+  # native core through the `cli` feature instead: it vendors a static Lua
+  # 5.5, which proves the Rust side builds and its tests pass on Windows.
+  rust-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --features cli
+
   lua:
     strategy:
       matrix:

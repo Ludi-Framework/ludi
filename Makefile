@@ -9,16 +9,36 @@
 LUA ?= lua55
 LUA_BIN ?= lua5.5
 
+# The cdylib name and the dynamic-loader extension differ per platform:
+# Lua loads C modules as `ludi_core.so` on Linux/macOS and `ludi_core.dll`
+# on Windows, while cargo emits `libludi_core.{so,dylib}` / `ludi_core.dll`.
+# On Windows a symlink needs privileges, so copy the artifact instead.
+ifeq ($(OS),Windows_NT)
+	CORE := target/release/ludi_core.dll
+	MODULE := ludi_core.dll
+	CPATH := ./?.dll;;
+	LINK := cp -f
+else
+	MODULE := ludi_core.so
+	CPATH := ./?.so;;
+	LINK := ln -sf
+	ifeq ($(shell uname -s),Darwin)
+		CORE := target/release/libludi_core.dylib
+	else
+		CORE := target/release/libludi_core.so
+	endif
+endif
+
 dev:
 	cargo build --release --features $(LUA)
-	ln -sf target/release/libludi_core.so ludi_core.so
+	$(LINK) $(CORE) $(MODULE)
 
 # The `ludi` CLI (ludi build): vendored static Lua 5.5, no module feature.
 cli:
 	cargo build --release --features cli --bin ludi
 
 run: dev
-	LUA_PATH="./?.lua;./?/init.lua;;" LUA_CPATH="./?.so;;" $(LUA_BIN) examples/hello.lua
+	LUA_PATH="./?.lua;./?/init.lua;;" LUA_CPATH="$(CPATH)" $(LUA_BIN) examples/hello.lua
 
 # Lua specs need busted (luarocks install busted), the Lua ecosystem's
 # standard test framework. `luarocks test` works too.

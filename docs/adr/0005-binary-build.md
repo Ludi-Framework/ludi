@@ -54,7 +54,10 @@ Ship a `ludi` CLI whose binary doubles as the application runtime.
   `lsqlite3`, ...) are never packed — they load from the host, which
   requires the Lua state to allow C loaders (`Lua::unsafe_new`) and the
   binary to export the static Lua API to `dlopen`ed libraries
-  (`-rdynamic` on Linux; macOS exports by default).
+  (`-rdynamic` on Linux; macOS exports by default). Windows executables do
+  not re-export their statically linked symbols, so a bundle that pulls in
+  a native rock cannot resolve the Lua API there — pure-Lua bundles are
+  unaffected and run anywhere.
 - Therefore "runs anywhere" holds for pure-Lua applications; an app
   using native rocks needs those rocks (built for Lua 5.5) installed on
   the target machine. Embedding first-party native modules (fredy) into

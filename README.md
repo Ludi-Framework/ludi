@@ -32,9 +32,9 @@ lua app.lua
 luarocks install ludi
 ```
 
-Prebuilt binary rocks are published for Linux and macOS (Lua 5.4, 5.5 and LuaJIT),
-so no Rust toolchain is needed. On platforms without a prebuilt rock,
-LuaRocks falls back to building from source, which requires
+Prebuilt binary rocks are published for Linux, macOS and Windows (Lua 5.4,
+5.5 and LuaJIT), so no Rust toolchain is needed. On platforms without a
+prebuilt rock, LuaRocks falls back to building from source, which requires
 [Rust](https://rustup.rs) installed.
 
 For a per-project install (like `node_modules`):
@@ -264,8 +264,11 @@ executable — no Lua, no LuaRocks on the target machine:
 ```bash
 ludi build                    # entry auto-detected when unambiguous
 ludi build server.lua -o api  # or explicit entry and output name
-./api
+./api                         # api.exe on Windows
 ```
+
+On Windows the output always gets an `.exe` extension (so `ludi build`
+produces `myapp.exe`), since that is what the OS needs to launch it.
 
 Without an explicit entry, `ludi build` accepts the conventional names
 `app.lua`, `server.lua`, `main.lua` and `init.lua` — but only when
@@ -279,8 +282,10 @@ Lua 5.5, the framework and the application in one file. At run time
 `require` resolves from the bundle; nothing is read from disk. The build
 is instant — no toolchain involved.
 
-The `ludi` CLI is attached to each GitHub release (`ludi-linux-x86_64`,
-`ludi-darwin-arm64`), or build it from source with `make cli`.
+The `ludi` CLI is attached to each GitHub release for Linux, macOS and
+Windows across `x86_64`, `arm64` and `x86` (e.g. `ludi-linux-x86_64`,
+`ludi-darwin-arm64`, `ludi-windows-x86_64.exe`), or build it from source
+with `make cli`.
 
 Notes:
 
@@ -288,7 +293,9 @@ Notes:
   used in development.
 - Modules resolve from the bundle first, then from the host's normal
   LuaRocks trees — so native rocks (e.g. `fredy_core`) work, but must be
-  installed on the target machine. Pure-Lua apps run anywhere.
+  installed on the target machine. Pure-Lua apps run anywhere. On Windows
+  a native rock inside a bundle must have been built against the same Lua
+  5.5 the runtime embeds.
 - `LUDI_WATCH` is ignored inside a bundle (nothing on disk to watch).
 - See [ADR 0005](docs/adr/0005-binary-build.md) for the design.
 
@@ -349,6 +356,12 @@ after installing, load the LuaRocks paths into your shell:
 The Lua version is selected by a cargo feature, e.g.
 `cargo build --release --features lua54`. When installing through
 LuaRocks, `luarocks-build-rust-mlua` picks the right feature automatically.
+
+On Windows, `make dev` and `make run` work under Git Bash (they use a
+`.dll` and copy the module into place instead of symlinking). Building
+from source through LuaRocks needs **LuaRocks 3.11 or newer** — older
+releases can't invoke the Rust build backend on Windows. Prebuilt rocks
+have no such requirement.
 
 ## Releases
 

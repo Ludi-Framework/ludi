@@ -61,6 +61,20 @@ fn try_build(args: &[String]) -> Result<String, String> {
             .unwrap_or_else(|| "app".to_string())
     });
 
+    // Windows only launches files with an executable extension, so the
+    // artifact has to end in `.exe` no matter what name it was given
+    // (the directory default rarely carries one). Elsewhere the name is
+    // left untouched.
+    #[cfg(windows)]
+    let output = if Path::new(&output)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("exe"))
+    {
+        output
+    } else {
+        format!("{output}.exe")
+    };
+
     let own_exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let runtime = std::fs::read(&own_exe).map_err(|e| e.to_string())?;
     if bundle::extract_payload(&runtime).is_some() {
