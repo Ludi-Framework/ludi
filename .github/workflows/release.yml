@@ -46,24 +46,6 @@ jobs:
       - name: Install rust-mlua build backend
         run: luarocks install luarocks-build-rust-mlua
 
-      # Unlike Linux/macOS, a Windows cdylib must resolve every symbol at
-      # link time, so mlua's module mode links against the Lua import
-      # library. The rust-mlua backend doesn't pass it through, so point
-      # mlua at the headers and lib gh-actions-lua installed under .lua/.
-      - name: Point mlua at the Lua import library (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          case "${{ matrix.lua }}" in
-            5.4) NAME=lua54 ;;
-            5.5) NAME=lua55 ;;
-            luajit*) NAME=luajit ;;
-          esac
-          {
-            echo "LUA_INC=$GITHUB_WORKSPACE/.lua/include"
-            echo "LUA_LIB=$GITHUB_WORKSPACE/.lua/lib"
-            echo "LUA_LIB_NAME=$NAME"
-          } >> "$GITHUB_ENV"
-
       # On a tag, stamp its version into the dev rockspec so the packed
       # rock is named after the release instead of "dev-1".
       - name: Select rockspec
