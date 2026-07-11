@@ -1,7 +1,8 @@
 # Distributing the `ludi` CLI
 
 Where the CLI binary should (and should not) be published, beyond the
-GitHub release assets (`ludi-linux-x86_64`, `ludi-darwin-arm64`). The
+GitHub release assets (`ludi-linux-x86_64`, `ludi-darwin-arm64`,
+`ludi-windows-x86_64.exe`, and the matching `arm64`/`x86` variants). The
 framework itself stays on LuaRocks; this is only about the CLI.
 
 Status: plan agreed on 2026-07-07, not implemented yet.
@@ -23,6 +24,12 @@ Status: plan agreed on 2026-07-07, not implemented yet.
    Publishing needs a maintainer account on aur.archlinux.org and an
    SSH key (as a repo secret for CI auto-bumps — e.g. the
    KSXGitHub/github-actions-deploy-aur action).
+4. **Scoop bucket** — the Windows counterpart to the Homebrew tap:
+   repository `Ludi-Framework/scoop-bucket` with a manifest pointing at
+   the `ludi-windows-*.exe` assets (`scoop install ludi`). The release
+   workflow bumps the manifest (version + hash) on every tag. The
+   install script above covers the `curl | sh` crowd; this covers the
+   Windows package-manager crowd.
 
 ## Rejected channels
 
