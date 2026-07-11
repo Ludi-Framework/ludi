@@ -5,15 +5,30 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Every step shells out to bash (sed, uname, case): pin it so the Windows
+# runners use Git Bash instead of their default PowerShell.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
     strategy:
       fail-fast: false
+      # One native runner per OS/arch: binary rocks can't be cross-compiled
+      # (the backend links against the host Lua), so every architecture needs
+      # its own runner. GitHub provides arm64 images for all three OSes.
       matrix:
-        os: [ubuntu-latest, macos-latest]
         lua: ["5.4", "5.5", "luajit"]
+        platform:
+          - { os: ubuntu-latest, arch: x86_64 }
+          - { os: ubuntu-24.04-arm, arch: arm64 }
+          - { os: macos-13, arch: x86_64 }
+          - { os: macos-latest, arch: arm64 }
+          - { os: windows-latest, arch: x86_64 }
+          - { os: windows-11-arm, arch: arm64 }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.platform.os }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +45,24 @@ jobs:
 
       - name: Install rust-mlua build backend
         run: luarocks install luarocks-build-rust-mlua
+
+      # Unlike Linux/macOS, a Windows cdylib must resolve every symbol at
+      # link time, so mlua's module mode links against the Lua import
+      # library. The rust-mlua backend doesn't pass it through, so point
+      # mlua at the headers and lib gh-actions-lua installed under .lua/.
+      - name: Point mlua at the Lua import library (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          case "${{ matrix.lua }}" in
+            5.4) NAME=lua54 ;;
+            5.5) NAME=lua55 ;;
+            luajit*) NAME=luajit ;;
+          esac
+          {
+            echo "LUA_INC=$GITHUB_WORKSPACE/.lua/include"
+            echo "LUA_LIB=$GITHUB_WORKSPACE/.lua/lib"
+            echo "LUA_LIB_NAME=$NAME"
+          } >> "$GITHUB_ENV"
 
       # On a tag, stamp its version into the dev rockspec so the packed
       # rock is named after the release instead of "dev-1".
@@ -64,32 +97,53 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rock-${{ matrix.os }}-lua${{ matrix.lua }}
+          name: rock-${{ matrix.platform.os }}-${{ matrix.platform.arch }}-lua${{ matrix.lua }}
           path: "*.rock"
 
   # The `ludi` CLI binary (ludi build), one per OS/arch, vendored Lua 5.5.
+  # arm64 and x86_64 build on native runners; the 32-bit x86 targets
+  # cross-compile from the 64-bit host of the same OS (there are no 32-bit
+  # runners, and macOS dropped 32-bit entirely).
   cli:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu, name: linux-x86_64 }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, name: linux-arm64 }
+          - { os: ubuntu-latest, target: i686-unknown-linux-gnu, name: linux-x86, packages: gcc-multilib }
+          - { os: macos-13, target: x86_64-apple-darwin, name: darwin-x86_64 }
+          - { os: macos-latest, target: aarch64-apple-darwin, name: darwin-arm64 }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, name: windows-x86_64 }
+          - { os: windows-latest, target: i686-pc-windows-msvc, name: windows-x86 }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, name: windows-arm64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # 32-bit cross-compiles need the multilib C toolchain for vendored Lua.
+      - name: Install cross toolchain
+        if: matrix.packages
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.packages }}
 
       - name: Build the ludi CLI
-        run: cargo build --release --features cli --bin ludi
+        run: cargo build --release --features cli --bin ludi --target ${{ matrix.target }}
 
       - name: Name the binary after the platform
         run: |
-          PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
-          cp target/release/ludi "ludi-$PLATFORM"
+          if [[ "${{ matrix.name }}" == windows-* ]]; then
+            cp "target/${{ matrix.target }}/release/ludi.exe" "ludi-${{ matrix.name }}.exe"
+          else
+            cp "target/${{ matrix.target }}/release/ludi" "ludi-${{ matrix.name }}"
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: cli-${{ matrix.os }}
+          name: cli-${{ matrix.name }}
           path: "ludi-*"
 
   release:
